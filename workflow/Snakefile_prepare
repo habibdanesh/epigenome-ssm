@@ -22,7 +22,7 @@ os.system("chmod +x {}".format(bw_avg_over_bed_src)) # make it executable
 tracks_dir = out_dir + "/tracks"
 
 ### track and file names
-bin_regions_file = out_dir + "/regions.bed"
+##
 out_files_locator = out_dir + "/file_locator.tsv"
 track_in_files = []
 track_bg_files = []
@@ -40,6 +40,17 @@ with open(in_files_locator, 'r') as in_f_locator, open(out_files_locator, 'w') a
         track_bg_files.append(bg_path)
         track_npz_files.append(npz_path)
         print("{}\t{}\t{}".format(epigenome, assay, npz_path), file=out_f_locator)
+##
+bin_regions_file = out_dir + "/regions.bed"
+chroms = []
+with open(regions_file, 'r') as regions_f:
+    regions = regions_f.readlines()
+    for line in regions:
+        columns = line.split("\t")
+        chrom = columns[0]
+        if chrom not in chroms:
+            chroms.append(chrom)
+chrom_regions_files = ["{}/regions.{}.tmp".format(out_dir, i) for i in range(len(chroms))]
 
 
 ### rules
@@ -57,7 +68,8 @@ rule generate_bin_regions:
     params:
         bin_size = bin_size
     output:
-        bin_regions_file = bin_regions_file
+        bin_regions_file = bin_regions_file,
+        chrom_regions_files = chrom_regions_files
     threads:
         workflow.cores
     script:
@@ -67,7 +79,7 @@ rule generate_bin_regions:
 rule get_bigwig_subset:
     input:
         in_files = track_in_files,
-        regions_file = bin_regions_file,
+        regions_files = chrom_regions_files,
         bw_avg_over_bed_src = bw_avg_over_bed_src
     output:
         out_files = track_bg_files
