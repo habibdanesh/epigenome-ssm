@@ -59,7 +59,7 @@ rule generate_bin_regions:
     output:
         bin_regions_file = bin_regions_file
     threads:
-        2
+        workflow.cores
     script:
         scripts_dir + "/generate_bin_regions.py"
 
@@ -72,7 +72,7 @@ rule get_bigwig_subset:
     output:
         out_files = track_bg_files
     threads:
-        2
+        workflow.cores
     script:
         scripts_dir + "/get_bigwig_subset.py"
 

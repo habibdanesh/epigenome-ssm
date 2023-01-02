@@ -10,7 +10,7 @@ arg_parser.add_argument("-i", "--infiles", required=True,
 arg_parser.add_argument("-r", "--regions", required=True, 
                         help="Path to a BED file containing genomic regions to be included in the analysis")
 arg_parser.add_argument("-b", "--binsize", type=int, required=False, default=200, 
-                        help="Bin size (or resolution) to average the signals")
+                        help="Bin size (resolution) to average the signals")
 arg_parser.add_argument("-o", "--outdir", required=False, 
                         help="Output directory to save the generated files")
 arg_parser.add_argument("-p", "--cores", type=int, required=False, default=1, 
