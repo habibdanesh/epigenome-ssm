@@ -1,0 +1,88 @@
+import os
+from sys import platform
+
+### config parameters
+root_path = config["root_path"]
+in_files_locator = config["in_files"]
+regions_file = config["regions_file"]
+bin_size = config["bin_size"]
+out_dir = config["out_dir"]
+
+### paths
+if not os.path.isdir(out_dir):
+    os.system("mkdir -p {}".format(out_dir))
+scripts_dir = root_path + "/workflow/scripts"
+if platform.startswith("linux"):
+    bw_avg_over_bed_src = root_path + "/util/ucsc/linux/bigWigAverageOverBed"
+if platform.startswith("darwin"):
+    bw_avg_over_bed_src = root_path + "/util/ucsc/mac-x86/bigWigAverageOverBed"
+os.system("chmod +x {}".format(bw_avg_over_bed_src)) # make it executable
+
+### output directories
+tracks_dir = out_dir + "/tracks"
+
+### track and file names
+bin_regions_file = out_dir + "/regions.bed"
+out_files_locator = out_dir + "/file_locator.tsv"
+track_in_files = []
+track_bg_files = []
+track_npz_files = []
+with open(in_files_locator, 'r') as in_f_locator, open(out_files_locator, 'w') as out_f_locator:
+    for line in in_f_locator.readlines():
+        columns = line.strip("\n").split("\t")
+        epigenome = columns[0]
+        assay = columns[1]
+        path = columns[2]
+        track = "{}_{}".format(epigenome, assay)
+        bg_path = "{}/{}.{}bp.bedgraph".format(tracks_dir, track, bin_size)
+        npz_path = "{}/{}.{}bp.npz".format(tracks_dir, track, bin_size)
+        track_in_files.append(path)
+        track_bg_files.append(bg_path)
+        track_npz_files.append(npz_path)
+        print("{}\t{}\t{}".format(epigenome, assay, npz_path), file=out_f_locator)
+
+
+### rules
+rule all:
+    input:
+        ## generate_bin_regions
+        bin_regions_file,
+        ## convert_to_npz
+        track_npz_files
+
+
+rule generate_bin_regions:
+    input:
+        regions_file = regions_file
+    params:
+        bin_size = bin_size
+    output:
+        bin_regions_file = bin_regions_file
+    threads:
+        2
+    script:
+        scripts_dir + "/generate_bin_regions.py"
+
+
+rule get_bigwig_subset:
+    input:
+        in_files = track_in_files,
+        regions_file = bin_regions_file,
+        bw_avg_over_bed_src = bw_avg_over_bed_src
+    output:
+        out_files = track_bg_files
+    threads:
+        2
+    script:
+        scripts_dir + "/get_bigwig_subset.py"
+
+
+rule convert_to_npz:
+    input:
+        in_files = track_bg_files
+    output:
+        out_files = track_npz_files
+    threads:
+        workflow.cores
+    script:
+        scripts_dir + "/bedgraph_to_npz.py"

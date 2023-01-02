@@ -1,0 +1,57 @@
+import os
+import json
+
+### config parameters
+root_path = config["root_path"]
+in_dir = config["in_dir"]
+out_dir = config["out_dir"]
+debug = config["debug"]
+
+### paths
+scripts_dir = root_path + "/workflow/scripts"
+training_dir = out_dir + "/training"
+annotation_dir = out_dir + "/annotation"
+features_dir = annotation_dir + "/features"
+plots_dir = out_dir + "/plots"
+model_json = training_dir + "/model.json"
+
+### model parameters
+with open(model_json, 'r') as model_f:
+    model_params = json.load(model_f)
+    n_features = model_params['K']
+
+### track and file names
+bin_regions_file = in_dir + "/regions.bed"
+in_files_locator = in_dir + "/file_locator.tsv"
+tracks = []
+track_in_files = []
+with open(in_files_locator, 'r') as in_f_locator:
+    for line in in_f_locator.readlines():
+        columns = line.strip("\n").split("\t")
+        epigenome = columns[0]
+        assay = columns[1]
+        path = columns[2]
+        track = "{}_{}".format(epigenome, assay)
+        tracks.append(track)
+        track_in_files.append(path)
+feature_npz_files = ["{}/f{}.npz".format(features_dir, f) for f in range(1, n_features+1)]
+feature_bw_files = ["{}/f{}.bigwig.gz".format(features_dir, f) for f in range(1, n_features+1)]
+
+
+### rules
+rule all:
+    input:
+        ## run_annotation
+        feature_npz_files
+
+
+rule run_annotation:
+    input:
+        in_files = track_in_files,
+        model_json = model_json
+    output:
+        feature_npz_files = feature_npz_files
+    threads:
+        workflow.cores
+    script:
+        scripts_dir + "/run_annotation.py"

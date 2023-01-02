@@ -1,0 +1,77 @@
+import os
+
+### config parameters
+root_path = config["root_path"]
+in_dir = config["in_dir"]
+model_type = config["model_type"]
+n_features = config["n_features"]
+out_dir = config["out_dir"]
+debug = config["debug"]
+
+### paths
+scripts_dir = root_path + "/workflow/scripts"
+training_dir = out_dir + "/training"
+plots_dir = out_dir + "/plots"
+
+### track and file names
+in_files_locator = in_dir + "/file_locator.tsv"
+tracks = []
+track_in_files = []
+with open(in_files_locator, 'r') as in_f_locator:
+    for line in in_f_locator.readlines():
+        columns = line.strip("\n").split("\t")
+        epigenome = columns[0]
+        assay = columns[1]
+        path = columns[2]
+        track = "{}_{}".format(epigenome, assay)
+        tracks.append(track)
+        track_in_files.append(path)
+model_json = training_dir + "/model.json"
+model_err_file = training_dir + "/model_err.txt"
+##
+err_plot_file = plots_dir + "/error_plot.pdf"
+emission_plot_file = plots_dir + "/emission_plot.pdf"
+transition_plot_file = plots_dir + "/transition_plot.pdf"
+
+
+### rules
+rule all:
+    input:
+        ## run_training
+        model_json,
+        model_err_file,
+        ## plot
+        err_plot_file,
+        emission_plot_file,
+        transition_plot_file
+
+
+rule run_training:
+    input:
+        in_files = track_in_files
+    params:
+        tracks = tracks,
+        model_type = model_type,
+        n_features = n_features
+    output:
+        model_json = model_json,
+        model_err_file = model_err_file
+    threads:
+        workflow.cores
+    script:
+        scripts_dir + "/run_training.py"
+
+
+rule plot:
+    input:
+        model_json = model_json,
+        model_err_file = model_err_file
+    params:
+        tracks = tracks,
+        n_features = n_features
+    output:
+        err_plot_file = err_plot_file,
+        emission_plot_file = emission_plot_file,
+        transition_plot_file = transition_plot_file
+    script:
+        scripts_dir + "/plot.py"
