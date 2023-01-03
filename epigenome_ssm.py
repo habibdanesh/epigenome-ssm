@@ -36,7 +36,11 @@ def run_pipeline():
     debug = args.debug
     ### train
     if task == "train":
-        cmd = "snakemake --snakefile {}/workflow/Snakefile_train --cores {}".format(root_path, n_cores)
+        cmd = "snakemake --snakefile {}/workflow/Snakefile_train".format(root_path)
+        if n_cores == -1: # use all available cores
+            cmd += " --cores"
+        else:
+            cmd += " --cores {}".format(n_cores)
         cmd += " --config root_path={} in_dir={} model_type={} n_features={} out_dir={} debug={}".format(
                             root_path, in_dir, model_type, n_features, out_dir, debug)
         if dry_run:
@@ -46,7 +50,11 @@ def run_pipeline():
         os.system(cmd)
     ### annotate
     elif task == "annotate":
-        cmd = "snakemake --snakefile {}/workflow/Snakefile_annotate --cores {}".format(root_path, n_cores)
+        cmd = "snakemake --snakefile {}/workflow/Snakefile_annotate".format(root_path)
+        if n_cores == -1: # use all available cores
+            cmd += " --cores"
+        else:
+            cmd += " --cores {}".format(n_cores)
         cmd += " --config root_path={} in_dir={} out_dir={} debug={}".format(
                             root_path, in_dir, out_dir, debug)
         if dry_run:

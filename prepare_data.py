@@ -30,7 +30,11 @@ def run_pipeline():
     n_cores = args.cores
     dry_run = args.dryrun
     ### run
-    cmd = "snakemake --snakefile {}/workflow/Snakefile_prepare --cores {}".format(root_path, n_cores)
+    cmd = "snakemake --snakefile {}/workflow/Snakefile_prepare".format(root_path)
+    if n_cores == -1: # use all available cores
+        cmd += " --cores"
+    else:
+        cmd += " --cores {}".format(n_cores)
     cmd += " --config root_path={} in_files={} regions_file={} bin_size={} out_dir={}".format(
                         root_path, in_files, regions_file, bin_size, out_dir)
     if dry_run:
