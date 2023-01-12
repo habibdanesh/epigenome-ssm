@@ -6,3 +6,4 @@ dependencies:
   - snakemake
   - numpy
   - matplotlib
+  - seaborn
