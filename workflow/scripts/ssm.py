@@ -9,7 +9,7 @@ class ssm(object):
                 E=5, G=100, K=3, 
                 lambda_1_l2=0.1, lambda_2_l1=0.1, lambda_2_l2=0.1, lambda_3_l2=0.1, 
                 positive_state=False, sumone_state=False, positive_em=False, message_passing=True, 
-                temp_dir="temp", n_threads=1, verbose=False):
+                n_threads=1, verbose=False):
         """
         :param E: # assay 
         :param G: # bp
@@ -32,7 +32,6 @@ class ssm(object):
         self.sumone_state = sumone_state
         self.positive_em = positive_em
         self.message_passing = message_passing
-        self.temp_dir = temp_dir
         self.n_threads = n_threads
         self.verbose = verbose
         self.precision = sys.float_info.epsilon
@@ -46,8 +45,6 @@ class ssm(object):
         self.error_m = []
         self.opt_time_m = []
         self.message_dic = {"a_m_f": [], "b_m_f": [], "c_m_f": [], "c_m_b": [], "a_m_b": [], "b_m_b": []}
-        if not os.path.isdir(self.temp_dir):
-            os.system("mkdir -p {}".format(self.temp_dir))
         
     def initialize(self):
         self.y_m = np.asmatrix(np.random.dirichlet(np.ones(self.K), size=self.G)).T
