@@ -7,8 +7,8 @@ import numpy as np
 class ssm(object):
     def __init__(self, seed=0, 
                 E=5, G=100, K=3, 
-                lambda_1_l2=0.1, lambda_2_l1=0.1, lambda_2_l2=0.1, lambda_3_l2=0.1, 
-                positive_state=False, sumone_state=False, positive_em=False, message_passing=True, 
+                lambda_1_l2=0.1, lambda_2_l1=0., lambda_2_l2=0.1, lambda_3_l2=0.1, 
+                positive_state=True, sumone_state=False, positive_em=True, message_passing=True, 
                 n_threads=1, verbose=False):
         """
         :param E: # assay 
@@ -21,6 +21,7 @@ class ssm(object):
         :param lambda_3_l2: whether to update lambda
         """
         np.random.seed(seed)
+        self.seed = seed
         self.E = E
         self.G = G
         self.K = K
@@ -54,6 +55,15 @@ class ssm(object):
                 np.matrix(np.random.multivariate_normal((self.theta_m_transpose * self.y_m[:, g]).flatten().tolist()[0], np.eye(self.E)))).T
             g += 1
         self.message_dic = {"a_m_f": [], "b_m_f": [], "c_m_f": [], "c_m_b": [], "a_m_b": [], "b_m_b": []}
+
+    def re_init(self, seed):
+        np.random.seed(seed)
+        self.seed = seed
+        self.y_m = np.asmatrix(np.random.dirichlet(np.ones(self.K), size=self.G)).T
+        self.theta_m = np.asmatrix(np.random.rand(self.K, self.E))
+        self.theta_m_transpose = self.theta_m.T
+        self.lambda_m = np.asmatrix(np.eye(self.K))
+        self.lambda_m_transpose = self.lambda_m.T
 
     def set_x(self, x):
         self.x_m = copy.deepcopy(x)

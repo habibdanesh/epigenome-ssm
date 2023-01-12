@@ -52,7 +52,13 @@ rule run_training:
     params:
         tracks = tracks,
         model_type = model_type,
-        n_features = n_features
+        n_features = n_features,
+        lambda_1_l2 = .1,
+        lambda_2_l1 = .0,
+        lambda_2_l2 = .1,
+        lambda_3_l2 = .1,
+        n_rand_init = 10,
+        max_iter = 10
     output:
         model_json = model_json,
         model_err_file = model_err_file

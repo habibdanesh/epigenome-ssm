@@ -7,18 +7,17 @@ in_files = snakemake.input.in_files
 tracks = snakemake.params.tracks
 model_type = snakemake.params.model_type
 n_features = snakemake.params.n_features
+lambda_1_l2 = snakemake.params.lambda_1_l2
+lambda_2_l1 = snakemake.params.lambda_2_l1
+lambda_2_l2 = snakemake.params.lambda_2_l2
+lambda_3_l2 = snakemake.params.lambda_3_l2
+n_rand_init = snakemake.params.n_rand_init
+max_iter = snakemake.params.max_iter
 model_json = snakemake.output.model_json
 model_err_file = snakemake.output.model_err_file
 
-### model parameters
-LAMBDA_1_L2 = .1
-LAMBDA_2_L1 = .0
-LAMBDA_2_L2 = .1
-LAMBDA_3_L2 = .1
-NUM_ITERATIONS = 30
-STOP_THRESHOLD = 0.001 # to stop training based on optimization performance
-
 ### read input data
+## stacked model
 if model_type == "stacked":
     npz_objects = []
     for in_f in in_files:
@@ -33,15 +32,29 @@ X_df = np.arcsinh(X_df)
 
 ### run ssm training
 model = ssm.ssm(E=num_tracks, G=num_positions, K=n_features, \
-            lambda_1_l2=LAMBDA_1_L2, lambda_2_l1=LAMBDA_2_L1, lambda_2_l2=LAMBDA_2_L2, lambda_3_l2=LAMBDA_3_L2, \
+            lambda_1_l2=lambda_1_l2, lambda_2_l1=lambda_2_l1, lambda_2_l2=lambda_2_l2, lambda_3_l2=lambda_3_l2, \
             positive_state=True, sumone_state=False, positive_em=True, message_passing=True, \
             verbose=False)
+##
 model.set_x(np.asmatrix(X_df))
-model.optimization(iteration=NUM_ITERATIONS)
+## multiple random initialization
+np.random.seed()
+seeds = []
+errors = []
+for t in range(n_rand_init):
+    s = np.random.randint(1000000)
+    model.re_init(seed=s)
+    seeds.append(s)
+    errors.append(model.total_error())
+best_seed = seeds[np.argmin(errors)]
+model.re_init(seed=best_seed)
+##
+model.optimization(iteration=max_iter)
 error_m = model.error_m
 
 ### save the model
 model_params = {
+    "seed": model.seed,
     "model_type": model_type,
     'K': n_features,
     'E': num_tracks,
@@ -49,10 +62,10 @@ model_params = {
     "sumone_state": False,
     "nonneg_em": True,
     "message_passing": True,
-    "lambda_1_l2": LAMBDA_1_L2,
-    "lambda_2_l1": LAMBDA_2_L1,
-    "lambda_2_l2": LAMBDA_2_L2,
-    "lambda_3_l2": LAMBDA_3_L2,
+    "lambda_1_l2": lambda_1_l2,
+    "lambda_2_l1": lambda_2_l1,
+    "lambda_2_l2": lambda_2_l2,
+    "lambda_3_l2": lambda_3_l2,
     "theta_m": model.theta_m.tolist(),
     "lambda_m": model.lambda_m.tolist()
 }
