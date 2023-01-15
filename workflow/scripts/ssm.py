@@ -369,9 +369,9 @@ class ssm(object):
         i = 0
         if not carryon:
             self.error_m.append(self.total_error())
+            self.start_time = time.time()
             if self.verbose:
                 print("[Error]: intial error", self.error_m[0])
-        start_time = time.time()
         while i < iteration:
             self.update_state()
             if self.verbose:
@@ -389,7 +389,7 @@ class ssm(object):
 
             self.error_m.append(self.total_error())
             self.improve_m.append((self.error_m[-2] - self.error_m[-1]) / self.error_m[-2])
-            self.opt_time_m.append(time.time() - start_time)
+            self.opt_time_m.append(time.time() - self.start_time)
             i += 1
 
 if __name__ == "__main__":

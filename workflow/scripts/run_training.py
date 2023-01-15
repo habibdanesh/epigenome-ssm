@@ -4,6 +4,8 @@ import ssm
 
 ### parameters
 in_files = snakemake.input.in_files
+epigenomes = snakemake.params.epigenomes
+assays = snakemake.params.assays
 tracks = snakemake.params.tracks
 model_type = snakemake.params.model_type
 n_features = snakemake.params.n_features
@@ -23,9 +25,27 @@ if model_type == "stacked":
     for in_f in in_files:
         npz_objects.append(np.load(in_f))
     X_df = np.vstack(([npz_obj["arr_0"] for npz_obj in npz_objects]))
-    print("X_df: {}".format(X_df.shape)) # shape is E x G
-    num_tracks = X_df.shape[0]
-    num_positions = X_df.shape[1]
+## concatenated model
+if model_type == "concatenated":
+    rows = []
+    for assay in assays:
+        col_npz_objects = []
+        for epigenome in epigenomes:
+            track = "{}_{}".format(epigenome, assay)
+            # find track input file
+            track_in_file = None
+            for in_f in in_files:
+                if in_f.split('/')[-1].startswith(track):
+                    track_in_file = in_f
+                    break
+            assert track_in_file != None
+            col_npz_objects.append(np.load(track_in_file))
+        rows.append(np.hstack(([npz_obj["arr_0"] for npz_obj in col_npz_objects])))
+    X_df = np.vstack(([row for row in rows]))
+##
+print("X_df: {}".format(X_df.shape)) # shape is E x G
+num_tracks = X_df.shape[0]
+num_positions = X_df.shape[1]
 
 ### data normalization
 X_df = np.arcsinh(X_df)
@@ -52,7 +72,7 @@ model.re_init(seed=best_seed)
 iter_step = 5
 model.optimization(iteration=iter_step)
 iter_passed = iter_step
-while iter_passed <= max_iter:
+while iter_passed < max_iter:
     model.optimization(iteration=iter_step, carryon=True)
     iter_passed += iter_step
     if np.mean(model.improve_m[-iter_step:]) < min_improvement: # if training is not progressing
@@ -76,7 +96,10 @@ model_params = {
     "theta_m": model.theta_m.tolist(),
     "lambda_m": model.lambda_m.tolist(),
     "error_m": model.error_m,
-    "improve_m": model.improve_m
+    "improve_m": model.improve_m,
+    "opt_time_m": model.opt_time_m,
+    "assays": assays,
+    "epigenomes": epigenomes
 }
 with open(model_json, 'w') as out_file:
     json.dump(model_params, out_file, indent=4)

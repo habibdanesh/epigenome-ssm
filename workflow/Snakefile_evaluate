@@ -1,0 +1,15 @@
+
+
+
+rule plot:
+    input:
+        model_json = model_json
+    params:
+        tracks = tracks,
+        n_features = n_features
+    output:
+        err_plot_file = err_plot_file,
+        emission_plot_file = emission_plot_file,
+        transition_plot_file = transition_plot_file
+    script:
+        scripts_dir + "/plot.py"

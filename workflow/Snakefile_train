@@ -15,6 +15,8 @@ plots_dir = out_dir + "/plots"
 
 ### track and file names
 in_files_locator = in_dir + "/file_locator.tsv"
+epigenomes = []
+assays = []
 tracks = []
 track_in_files = []
 with open(in_files_locator, 'r') as in_f_locator:
@@ -23,12 +25,17 @@ with open(in_files_locator, 'r') as in_f_locator:
         epigenome = columns[0]
         assay = columns[1]
         path = columns[2]
+        if epigenome not in epigenomes:
+            epigenomes.append(epigenome)
+        if assay not in assays:
+            assays.append(assay)
         track = "{}_{}".format(epigenome, assay)
         tracks.append(track)
         track_in_files.append(path)
 model_json = training_dir + "/model.json"
 ##
 err_plot_file = plots_dir + "/error_plot.pdf"
+time_plot_file = plots_dir + "/optimization_time_plot.pdf"
 emission_plot_file = plots_dir + "/emission_plot.pdf"
 transition_plot_file = plots_dir + "/transition_plot.pdf"
 
@@ -40,6 +47,7 @@ rule all:
         model_json,
         ## plot
         err_plot_file,
+        time_plot_file,
         emission_plot_file,
         transition_plot_file
 
@@ -48,6 +56,8 @@ rule run_training:
     input:
         in_files = track_in_files
     params:
+        epigenomes = epigenomes,
+        assays = assays,
         tracks = tracks,
         model_type = model_type,
         n_features = n_features,
@@ -56,8 +66,8 @@ rule run_training:
         lambda_2_l2 = .1,
         lambda_3_l2 = .1,
         n_rand_init = 10,
-        max_iter = 100,
-        min_improvement = 0.01
+        max_iter = 10,
+        min_improvement = 0.001
     output:
         model_json = model_json
     threads:
@@ -74,6 +84,7 @@ rule plot:
         n_features = n_features
     output:
         err_plot_file = err_plot_file,
+        time_plot_file = time_plot_file,
         emission_plot_file = emission_plot_file,
         transition_plot_file = transition_plot_file
     script:
