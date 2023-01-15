@@ -44,6 +44,7 @@ class ssm(object):
         self.lambda_m = np.asmatrix(np.eye(self.K))
         self.lambda_m_transpose = self.lambda_m.T
         self.error_m = []
+        self.improve_m = [] # percentage of error improvement with respect to the previous iteration
         self.opt_time_m = []
         self.message_dic = {"a_m_f": [], "b_m_f": [], "c_m_f": [], "c_m_b": [], "a_m_b": [], "b_m_b": []}
         
@@ -363,12 +364,13 @@ class ssm(object):
         else:
             self.update_y_idv()
 
-    def optimization(self, iteration=10):
+    def optimization(self, iteration=10, carryon=False):
         self.message_dic = {"a_m_f": [], "b_m_f": [], "c_m_f": [], "c_m_b": [], "a_m_b": [], "b_m_b": []}
         i = 0
-        self.error_m.append(self.total_error())
-        if self.verbose:
-            print("[Error]: intial error", self.total_error())
+        if not carryon:
+            self.error_m.append(self.total_error())
+            if self.verbose:
+                print("[Error]: intial error", self.error_m[0])
         start_time = time.time()
         while i < iteration:
             self.update_state()
@@ -380,17 +382,15 @@ class ssm(object):
             if self.verbose:
                 print("[Error] after update tr:", self.total_error())
 
-            
             theta_lhs, theta_rhs = self.get_theta_msg()
             self.update_theta(theta_lhs, theta_rhs)
             if self.verbose:
                 print("[Error] after update em:", self.total_error())
 
             self.error_m.append(self.total_error())
+            self.improve_m.append((self.error_m[-2] - self.error_m[-1]) / self.error_m[-2])
             self.opt_time_m.append(time.time() - start_time)
             i += 1
-        self.error_begin = self.error_m[0]
-        self.error_end = self.error_m[-1]
 
 if __name__ == "__main__":
     seed = 0

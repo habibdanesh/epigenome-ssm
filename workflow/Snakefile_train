@@ -27,7 +27,6 @@ with open(in_files_locator, 'r') as in_f_locator:
         tracks.append(track)
         track_in_files.append(path)
 model_json = training_dir + "/model.json"
-model_err_file = training_dir + "/model_err.txt"
 ##
 err_plot_file = plots_dir + "/error_plot.pdf"
 emission_plot_file = plots_dir + "/emission_plot.pdf"
@@ -39,7 +38,6 @@ rule all:
     input:
         ## run_training
         model_json,
-        model_err_file,
         ## plot
         err_plot_file,
         emission_plot_file,
@@ -58,10 +56,10 @@ rule run_training:
         lambda_2_l2 = .1,
         lambda_3_l2 = .1,
         n_rand_init = 10,
-        max_iter = 10
+        max_iter = 100,
+        min_improvement = 0.01
     output:
-        model_json = model_json,
-        model_err_file = model_err_file
+        model_json = model_json
     threads:
         workflow.cores
     script:
@@ -70,8 +68,7 @@ rule run_training:
 
 rule plot:
     input:
-        model_json = model_json,
-        model_err_file = model_err_file
+        model_json = model_json
     params:
         tracks = tracks,
         n_features = n_features

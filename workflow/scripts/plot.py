@@ -7,7 +7,6 @@ import json
 
 ### snakemake parameters
 model_json = snakemake.input.model_json
-model_err_file = snakemake.input.model_err_file
 tracks = snakemake.params.tracks
 n_features = snakemake.params.n_features
 err_plot_file = snakemake.output.err_plot_file
@@ -17,20 +16,20 @@ transition_plot_file = snakemake.output.transition_plot_file
 ### other parameters
 fig_dpi = 600
 
-### plot model error
-err_k = np.fromfile(model_err_file)
-err_plot = plt.figure().gca()
-err_k = err_k[1:] # remove the initial error which might be too high
-err_plot.plot(range(1, len(err_k)+1), err_k, label="K={}".format(n_features))
-err_plot.xaxis.set_major_locator(MaxNLocator(integer=True))
-err_plot.legend(loc="best")
-plt.savefig(err_plot_file, dpi=fig_dpi)
-
 ### read model parameters
 obj_text = codecs.open(model_json, 'r', encoding="utf-8").read()
 model_param = json.loads(obj_text)
 emission_mat = np.asmatrix(model_param["theta_m"])
 transition_mat = np.asmatrix(model_param["lambda_m"])
+error_list = model_param["error_m"]
+
+### plot model error
+err_plot = plt.figure().gca()
+error_list = error_list[1:] # remove the initial error which might be too high
+err_plot.plot(range(1, len(error_list)+1), error_list, label="K={}".format(n_features))
+err_plot.xaxis.set_major_locator(MaxNLocator(integer=True))
+err_plot.legend(loc="best")
+plt.savefig(err_plot_file, dpi=fig_dpi)
 
 f_ticks = []
 for i in range(1, n_features+1):

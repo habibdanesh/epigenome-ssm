@@ -13,8 +13,8 @@ lambda_2_l2 = snakemake.params.lambda_2_l2
 lambda_3_l2 = snakemake.params.lambda_3_l2
 n_rand_init = snakemake.params.n_rand_init
 max_iter = snakemake.params.max_iter
+min_improvement = snakemake.params.min_improvement
 model_json = snakemake.output.model_json
-model_err_file = snakemake.output.model_err_file
 
 ### read input data
 ## stacked model
@@ -48,9 +48,16 @@ for t in range(n_rand_init):
     errors.append(model.total_error())
 best_seed = seeds[np.argmin(errors)]
 model.re_init(seed=best_seed)
-##
-model.optimization(iteration=max_iter)
-error_m = model.error_m
+## optimization
+iter_step = 5
+model.optimization(iteration=iter_step)
+iter_passed = iter_step
+while iter_passed <= max_iter:
+    model.optimization(iteration=iter_step, carryon=True)
+    iter_passed += iter_step
+    if np.mean(model.improve_m[-iter_step:]) < min_improvement: # if training is not progressing
+        break
+print("# iterations: {}".format(iter_passed))
 
 ### save the model
 model_params = {
@@ -67,9 +74,9 @@ model_params = {
     "lambda_2_l2": lambda_2_l2,
     "lambda_3_l2": lambda_3_l2,
     "theta_m": model.theta_m.tolist(),
-    "lambda_m": model.lambda_m.tolist()
+    "lambda_m": model.lambda_m.tolist(),
+    "error_m": model.error_m,
+    "improve_m": model.improve_m
 }
 with open(model_json, 'w') as out_file:
     json.dump(model_params, out_file, indent=4)
-## save the errors
-np.array(error_m).tofile(model_err_file)
