@@ -72,9 +72,11 @@ model.re_init(seed=best_seed)
 iter_step = 5
 model.optimization(iteration=iter_step)
 iter_passed = iter_step
+print("# iterations passed: {}".format(iter_passed))
 while iter_passed < max_iter:
     model.optimization(iteration=iter_step, carryon=True)
     iter_passed += iter_step
+    print("# iterations passed: {}".format(iter_passed))
     if np.mean(model.improve_m[-iter_step:]) < min_improvement: # if training is not progressing
         break
 print("# iterations: {}".format(iter_passed))
