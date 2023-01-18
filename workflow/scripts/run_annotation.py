@@ -44,7 +44,7 @@ for n_bins in n_bins_list:
     if model_type == "stacked":
         npz_objects = []
         for in_f in in_files:
-            npz_objects.append(np.load(in_f))
+            npz_objects.append(np.load(in_f, mmap_mode='r'))
         X_df = np.vstack(([npz_obj["arr_0"][bin_start:bin_end] for npz_obj in npz_objects]))
     ## concatenated model
     if model_type == "concatenated":
@@ -60,7 +60,7 @@ for n_bins in n_bins_list:
                         track_in_file = in_f
                         break
                 assert track_in_file != None
-                col_npz_objects.append(np.load(track_in_file))
+                col_npz_objects.append(np.load(track_in_file, mmap_mode='r'))
             rows.append(np.hstack(([npz_obj["arr_0"][bin_start:bin_end] for npz_obj in col_npz_objects])))
         X_df = np.vstack(([row for row in rows]))
     ##
