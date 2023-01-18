@@ -22,6 +22,7 @@ with open(model_json, 'r') as model_f:
 
 ### track and file names
 bin_regions_file = in_dir + "/regions.bed"
+n_bins_file = in_dir + "/regions_n_bins.bg"
 in_files_locator = in_dir + "/file_locator.tsv"
 tracks = []
 track_in_files = []
@@ -48,7 +49,10 @@ rule all:
 rule run_annotation:
     input:
         in_files = track_in_files,
+        n_bins_file = n_bins_file,
         model_json = model_json
+    params:
+        features_dir = features_dir
     output:
         feature_npz_files = feature_npz_files
     threads:

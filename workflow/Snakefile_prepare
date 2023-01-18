@@ -42,6 +42,7 @@ with open(in_files_locator, 'r') as in_f_locator, open(out_files_locator, 'w') a
         print("{}\t{}\t{}".format(epigenome, assay, npz_path), file=out_f_locator)
 ##
 bin_regions_file = out_dir + "/regions.bed"
+n_bins_file = out_dir + "/regions_n_bins.bg"
 chroms = []
 with open(regions_file, 'r') as regions_f:
     regions = regions_f.readlines()
@@ -58,6 +59,7 @@ rule all:
     input:
         ## generate_bin_regions
         bin_regions_file,
+        n_bins_file,
         ## convert_to_npz
         track_npz_files
 
@@ -69,6 +71,7 @@ rule generate_bin_regions:
         bin_size = bin_size
     output:
         bin_regions_file = bin_regions_file,
+        n_bins_file = n_bins_file,
         chrom_regions_files = chrom_regions_files
     threads:
         workflow.cores
