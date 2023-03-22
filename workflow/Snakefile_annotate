@@ -1,5 +1,6 @@
 import os
 import json
+import numpy as np
 
 ### config parameters
 root_path = config["root_path"]
@@ -22,7 +23,15 @@ with open(model_json, 'r') as model_f:
 
 ### track and file names
 bin_regions_file = in_dir + "/regions.bed"
+##
 n_bins_file = in_dir + "/regions_n_bins.bg"
+n_bins_list = []
+with open(n_bins_file, 'r') as n_bins_f:
+    lines = n_bins_f.readlines()
+for line in lines:
+    n_bins_list.append(int(line.strip("\n").split("\t")[-1]))
+chunk_npz_files = expand("{d}/chunk_{chunk_idx}.npz", d=features_dir, chunk_idx=[i for i in range(len(n_bins_list))])
+##
 in_files_locator = in_dir + "/file_locator.tsv"
 tracks = []
 track_in_files = []
@@ -42,20 +51,43 @@ feature_bw_files = ["{}/f{}.bigwig.gz".format(features_dir, f) for f in range(1,
 ### rules
 rule all:
     input:
-        ## run_annotation
+        ## combine_chunk_annotations
         feature_npz_files
 
 
 rule run_annotation:
     input:
-        in_files = track_in_files,
+        in_files_locator = in_files_locator,
         n_bins_file = n_bins_file,
         model_json = model_json
-    params:
-        features_dir = features_dir
+    output:
+        chunk_npz_file = features_dir + "/chunk_{chunk_idx}.npz"
+    threads:
+        8
+    resources:
+        mem_mb = 8000
+    script:
+        scripts_dir + "/run_annotation.py"
+
+
+rule combine_chunk_annotations:
+    input:
+        chunk_npz_files = chunk_npz_files
     output:
         feature_npz_files = feature_npz_files
     threads:
         workflow.cores
-    script:
-        scripts_dir + "/run_annotation.py"
+    run:
+        feature_mat = np.matrix([], dtype=np.single)
+        for i, chunk_npz_file in enumerate(input.chunk_npz_files):
+            chunk_idx = int(chunk_npz_file[:-len(".npz")].split('_')[-1])
+            assert i == chunk_idx
+            chunk_mat = np.load(chunk_npz_file)["arr_0"]
+            feature_mat = np.hstack([feature_mat, chunk_mat]) if feature_mat.size else chunk_mat
+        print("\nfeature_mat: {}\n".format(feature_mat.shape)) # shape is K x G
+        ### save
+        for k in range(n_features):
+            np.savez_compressed(output.feature_npz_files[k], feature_mat[k, :])
+        ### clean up
+        for chunk_npz_file in input.chunk_npz_files:
+            os.remove(chunk_npz_file)
