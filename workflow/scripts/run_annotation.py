@@ -82,26 +82,18 @@ if model_type == "concatenated":
 print("X_df: {}".format(X_df.shape)) # shape is E x n_bins
 num_tracks = X_df.shape[0]
 num_positions = X_df.shape[1]
-print("******** TEST 1 ********")
 ### data normalization
 X_df = np.arcsinh(X_df)
-print("******** TEST 2 ********")
 ### run ssm annotation
 model = ssm.ssm(E=num_tracks, G=num_positions, K=K, \
             lambda_1_l2=lambda_1_l2, lambda_2_l1=lambda_2_l1, lambda_2_l2=lambda_2_l2, lambda_3_l2=lambda_3_l2, \
             positive_state=nonneg_state, sumone_state=sumone_state, positive_em=nonneg_em, message_passing=message_passing, \
             verbose=False)
-print("******** TEST 3 ********")
 model.set_x(np.asmatrix(X_df))
-print("******** TEST 4 ********")
 model.set_theta(theta_m)
-print("******** TEST 5 ********")
 model.set_lambda(lambda_m)
-print("******** TEST 6 ********")
 model.update_state()
-print("******** TEST 7 ********")
 print("y_m: {}\n".format(model.y_m.shape)) # shape is K x n_bins
 
 ### save the feature tracks
 np.savez_compressed(chunk_npz_file, model.y_m)
-print("******** TEST 8 ********")
