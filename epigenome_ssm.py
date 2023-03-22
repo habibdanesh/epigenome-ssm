@@ -8,6 +8,10 @@ arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("task", help="Task")
 arg_parser.add_argument("-i", "--indir", required=True, 
                         help="Path to the directory that contains prepared input data")
+arg_parser.add_argument("--n_bins_file", required=False, 
+                        help="Path to BED file containing number of bins in each region")
+arg_parser.add_argument("-b", "--binsize", type=int, required=False, default=200, 
+                        help="Bin size (resolution) to average the signals")
 arg_parser.add_argument("-m", "--modeltype", required=False, default="stacked", choices=["stacked", "concatenated"], 
                         help="Type of model")
 arg_parser.add_argument("-k", "--nfeatures", type=int, required=False, default=5, 
@@ -28,6 +32,8 @@ def run_pipeline():
     task = args.task
     root_path = '/'.join(os.path.abspath(sys.argv[0]).split('/')[:-1])
     in_dir = args.indir
+    n_bins_file = args.n_bins_file
+    bin_size = args.binsize
     model_type = args.modeltype
     n_features = args.nfeatures
     out_dir = args.outdir
@@ -57,6 +63,20 @@ def run_pipeline():
             cmd += " --cores {}".format(n_cores)
         cmd += " --config root_path={} in_dir={} out_dir={} debug={}".format(
                             root_path, in_dir, out_dir, debug)
+        if dry_run:
+            cmd += " -n"
+        print(cmd)
+        print('')
+        os.system(cmd)
+    ### evaluate
+    elif task == "evaluate":
+        cmd = "snakemake --snakefile {}/workflow/Snakefile_evaluate".format(root_path)
+        if n_cores == -1: # use all available cores
+            cmd += " --cores"
+        else:
+            cmd += " --cores {}".format(n_cores)
+        cmd += " --config root_path={} in_dir={} n_bins_file={} bin_size={} out_dir={} debug={}".format(
+                            root_path, in_dir, n_bins_file, bin_size, out_dir, debug)
         if dry_run:
             cmd += " -n"
         print(cmd)

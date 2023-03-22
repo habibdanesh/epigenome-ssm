@@ -1,15 +1,538 @@
+import json
+import numpy as np
+from scipy.stats import gaussian_kde
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+### config parameters
+root_path = config["root_path"]
+in_dir = config["in_dir"]
+n_bins_file = config["n_bins_file"] # TODO path to this file should be saved in model_json
+bin_size = config["bin_size"] # TODO bin_size should be saved in model_json
+out_dir = config["out_dir"]
+debug = config["debug"]
+
+### paths
+scripts_dir = root_path + "/workflow/scripts"
+gene_annotation_file = root_path + "/data/gencode/gencode.v43.protein_coding.tsv"
+training_dir = in_dir + "/training"
+annotation_dir = in_dir + "/annotation"
+features_dir = annotation_dir + "/features"
+plots_dir = out_dir + "/plots"
+model_json = training_dir + "/model.json"
+
+### model parameters
+with open(model_json, 'r') as model_f:
+    model_params = json.load(model_f)
+    model_type = model_params["model_type"]
+    n_features = model_params['K']
+    epigenomes = model_params["epigenomes"]
+    assays = model_params["assays"]
+    error_list = model_params["error_m"]
+    opt_time_list = model_params["opt_time_m"]
+    opt_improve_list = model_params["improve_m"]
+    emission_mat = np.array(model_params["theta_m"])
+    transition_mat = np.array(model_params["lambda_m"])
+tracks = []
+for epigenome in epigenomes:
+    for assay in assays:
+        tracks.append("{}_{}".format(epigenome, assay))
+
+### global parameters
+fig_dpi = 600
+f_ticks = []
+for k in range(1, n_features+1):
+    f_ticks.append("F{}".format(k))
+tss_window_size = 5000 # window size (in bp) upstream/downstream of TSS
+tts_window_size = 5000 # window size (in bp) upstream/downstream of TSS
+
+### pre-processing
+n_bins_df = pd.read_csv(n_bins_file, sep="\t", 
+                        names=["chrom", "start", "end", "n_bins"])
+start_bin_indices = []
+end_bin_indices = []
+idx_counter = 0
+for row in n_bins_df.itertuples():
+    start_bin_idx = idx_counter
+    end_bin_idx = start_bin_idx + row.n_bins - 1 # -1 because it's zero-indexed
+    start_bin_indices.append(start_bin_idx)
+    end_bin_indices.append(end_bin_idx)
+    idx_counter = end_bin_idx + 1
+n_bins_df["start_bin_idx"] = start_bin_indices
+n_bins_df["end_bin_idx"] = end_bin_indices
+start_bin_indices = None
+end_bin_indices = None
+
+### track and file names
+## get feature stats
+feature_stats_tsv = "{}/feature_stats.tsv".format(out_dir)
+## transition
+transition_plot = "{}/transition.pdf".format(plots_dir)
+transition_diag_plot = "{}/transition_diag.pdf".format(plots_dir)
+transition_offdiag_plot = "{}/transition_offdiag.pdf".format(plots_dir)
+## emission
+emission_asort_plot = "{}/emission_asort.pdf".format(plots_dir) # vertical axis sorted by assay
+emission_esort_plot = "{}/emission_esort.pdf".format(plots_dir) # vertical axis sorted by epigenome
+## emission scatter
+emission_scatter_dir = "{}/emission-scatter".format(plots_dir)
+emission_scatter_plots = []
+for k in range(1, n_features+1):
+    k_plot_file = "{}/emission_scatter_k{}.pdf".format(emission_scatter_dir, k)
+    emission_scatter_plots.append(k_plot_file)
+## training progress
+train_progress_plot = "{}/training_progress.pdf".format(plots_dir)
+## TSS enrichment
+tss_enrich_tsv = "{}/enrichment_tss.tsv".format(plots_dir)
+tss_enrich_plot = "{}/enrichment_tss.pdf".format(plots_dir)
+## TTS enrichment
+tts_enrich_tsv = "{}/enrichment_tts.tsv".format(plots_dir)
+tts_enrich_plot = "{}/enrichment_tts.pdf".format(plots_dir)
 
 
-
-rule plot:
+### rules
+rule all:
     input:
-        model_json = model_json
-    params:
-        tracks = tracks,
-        n_features = n_features
+        ## get_feature_stats
+        feature_stats_tsv,
+        ## plot_transition
+        transition_plot,
+        transition_diag_plot,
+        transition_offdiag_plot,
+        ## plot_emission
+        emission_asort_plot,
+        ## plot_emission_scatter
+        emission_scatter_plots,
+        ## plot_training_progress
+        train_progress_plot,
+        ## compute_tss_enrichment
+        tss_enrich_tsv,
+        ## plot_tss_enrichment
+        tss_enrich_plot,
+        ## compute_tts_enrichment
+        tts_enrich_tsv,
+        ## plot_tts_enrichment
+        tts_enrich_plot
+
+
+rule get_feature_stats:
     output:
-        err_plot_file = err_plot_file,
-        emission_plot_file = emission_plot_file,
-        transition_plot_file = transition_plot_file
-    script:
-        scripts_dir + "/plot.py"
+        feature_stats_tsv
+    threads:
+        workflow.cores
+    run:
+        with open(feature_stats_tsv, 'w') as out_f:
+            header = "feature\tmin\tmax\tmean\tstdev\tvariance"
+            header += "\tpercentile_1\tpercentile_5\tpercentile_10\tpercentile_25\tpercentile_50"
+            header += "\tpercentile_75\tpercentile_90\tpercentile_95\tpercentile_99"
+            print(header, file=out_f)
+            for k in range(1, n_features+1):
+                f_npz = "{}/features/f{}.npz".format(annotation_dir, k)
+                fk = np.load(f_npz)["arr_0"]
+                print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(
+                    k, fk.min(), fk.max(), fk.mean(), fk.std(), fk.var(),
+                    np.percentile(fk, 1), np.percentile(fk, 5), np.percentile(fk, 10), np.percentile(fk, 25), np.percentile(fk, 50),
+                    np.percentile(fk, 75), np.percentile(fk, 90), np.percentile(fk, 95), np.percentile(fk, 99)
+                ), file=out_f)
+
+
+rule plot_transition:
+    output:
+        transition_plot,
+        transition_diag_plot,
+        transition_offdiag_plot
+    threads:
+        2
+    run:
+        ### plot transition
+        ax = sns.heatmap(transition_mat, square=True, cmap="Oranges", robust=True,
+                        xticklabels=f_ticks, yticklabels=f_ticks, cbar_kws={"label": "Transition value"})
+        ax.xaxis.tick_top()
+        plt.xticks(rotation=90)
+        plt.yticks(rotation=0)
+        plt.savefig(transition_plot, bbox_inches="tight", dpi=fig_dpi)
+        plt.close()
+        ### plot transition diagonal
+        mask_offdiag = np.array([[False if i == j else True for j in range(len(transition_mat[i]))] 
+                            for i in range(len(transition_mat))])
+        ax = sns.heatmap(transition_mat, mask=mask_offdiag, square=True, cmap="Oranges", robust=True,
+                        xticklabels=f_ticks, yticklabels=f_ticks, cbar_kws={"label": "Transition value"})
+        ax.set_facecolor("silver") # set a different color for masked cells
+        ax.xaxis.tick_top()
+        plt.xticks(rotation=90)
+        plt.yticks(rotation=0)
+        plt.savefig(transition_diag_plot, bbox_inches="tight", dpi=fig_dpi)
+        plt.close()
+        ### plot transition off-diagonal
+        mask_diag = np.array([[True if i == j else False for j in range(len(transition_mat[i]))] 
+                            for i in range(len(transition_mat))])
+        ax = sns.heatmap(transition_mat, mask=mask_diag, square=True, cmap="Oranges", robust=True,
+                        xticklabels=f_ticks, yticklabels=f_ticks, cbar_kws={"label": "Transition value"})
+        ax.set_facecolor("silver") # set a different color for masked cells
+        ax.xaxis.tick_top()
+        plt.xticks(rotation=90)
+        plt.yticks(rotation=0)
+        plt.savefig(transition_offdiag_plot, bbox_inches="tight", dpi=fig_dpi)
+        plt.close()
+
+
+rule plot_emission:
+    input:
+        feature_stats_tsv
+    output:
+        emission_asort_plot
+        # NOTE: don't need to include emission_esort_plot in the output bcause it's not needed for concatenated models
+    threads:
+        4
+    run:
+        if model_type == "stacked":
+            ### generate both emission_asort_plot and emission_esort_plot
+            ### normalize the emissions by feature mean values
+            norm_emission_mat = emission_mat
+            with open(feature_stats_tsv, 'r') as stats_f:
+                lines = stats_f.readlines()
+                for k in range(n_features):
+                    fk_mean = float(lines[k+1].strip("\n").split("\t")[3])
+                    norm_emission_mat[k] *= fk_mean
+            ### convert to pd df
+            emission_df = pd.DataFrame(norm_emission_mat.T)
+            emission_df.columns = f_ticks
+            emission_df["track"] = tracks
+            emission_df["epigenome"] = emission_df.apply(lambda row: row["track"].split('_')[0], axis=1)
+            emission_df["assay"] = emission_df.apply(lambda row: row["track"].split('_')[1], axis=1)
+            ### emission_esort_plot
+            emission_df.sort_values(by=["epigenome", "assay"], inplace=True)
+            ## plot
+            ax = sns.heatmap(emission_df.loc[:, ~emission_df.columns.isin(["track", "epigenome", "assay"])], 
+                            cmap="Oranges", xticklabels=f_ticks, yticklabels=False, 
+                            cbar_kws={"label": "Emission value"}, robust=True)
+            ax.set(ylabel="Input track")
+            ax.xaxis.tick_top()
+            plt.savefig(emission_esort_plot, bbox_inches="tight", dpi=fig_dpi)
+            plt.close()
+            ### emission_asort_plot
+            emission_df.sort_values(by=["assay", "epigenome"], inplace=True)
+            ## y tick labels
+            y_tick_labels = []
+            prev_label = ''
+            for row in emission_df.itertuples():
+                if row.assay != prev_label:
+                    prev_label = row.assay
+                    y_tick_labels.append(row.assay)
+                else:
+                    y_tick_labels.append('')
+            ## plot
+            ax = sns.heatmap(emission_df.loc[:, ~emission_df.columns.isin(["track", "epigenome", "assay"])], 
+                            cmap="Oranges", xticklabels=f_ticks, yticklabels=y_tick_labels, 
+                            cbar_kws={"label": "Emission value"}, robust=True)
+            ax.xaxis.tick_top()
+            plt.xticks(rotation=90)
+            plt.yticks(rotation=0)
+            plt.savefig(emission_asort_plot, bbox_inches="tight", dpi=fig_dpi)
+            plt.close()
+        #if model_type == "concatenated":
+            ### generate emission_asort_plot only
+            #y_tick_labels = assays
+
+
+rule plot_emission_scatter:
+    input:
+        feature_stats_tsv
+    output:
+        emission_scatter_plots
+    threads:
+        4
+    run:
+        ### normalize the emissions by feature mean values
+        norm_emission_mat = emission_mat
+        with open(feature_stats_tsv, 'r') as stats_f:
+            lines = stats_f.readlines()
+            for k in range(n_features):
+                fk_mean = float(lines[k+1].strip("\n").split("\t")[3])
+                norm_emission_mat[k] *= fk_mean
+        ### convert to pd df
+        emission_df = pd.DataFrame(norm_emission_mat.T)
+        emission_df.columns = f_ticks
+        emission_df["track"] = tracks
+        emission_df["epigenome"] = emission_df.apply(lambda row: row["track"].split('_')[0], axis=1)
+        emission_df["assay"] = emission_df.apply(lambda row: row["track"].split('_')[1], axis=1)
+        ### plot
+        grid_nrows = 3
+        grid_ncols = 5
+        for k in range(n_features):
+            fig, axs = plt.subplots(grid_nrows, grid_ncols)
+            grid_row = 0
+            grid_col = 0
+            plot_file_k = emission_scatter_plots[k]
+            f_tick = f_ticks[k]
+            for i in range(len(assays)-1):
+                assay_i = assays[i]
+                emission_ki = emission_df[f_tick][emission_df.assay == assay_i]
+                for j in range(i+1, len(assays)):
+                    assay_j = assays[j]
+                    emission_kj = emission_df[f_tick][emission_df.assay == assay_j]
+                    ax = axs[grid_row, grid_col]
+                    ## Calculate the point density
+                    xy = np.vstack([emission_ki, emission_kj])
+                    z = gaussian_kde(xy)(xy)
+                    ##
+                    im = ax.scatter(x=emission_ki, y=emission_kj, c=z, s=40)
+                    ax.set_xlabel(assay_i)
+                    ax.set_ylabel(assay_j)
+                    grid_col += 1
+                    if grid_col == grid_ncols:
+                        grid_col = 0
+                        grid_row += 1
+            fig.set_size_inches(30, 15)
+            fig.subplots_adjust(right=0.9)
+            cbar_ax = fig.add_axes([0.91, 0.25, 0.01, 0.5])
+            fig.colorbar(im, cax=cbar_ax)
+            plt.savefig(plot_file_k, bbox_inches="tight", dpi=fig_dpi)
+            plt.close()
+
+
+rule plot_training_progress:
+    output:
+        train_progress_plot
+    threads:
+        2
+    run:
+        x_values = range(1, len(error_list[1:])+1)
+        ##
+        fig, ax = plt.subplots()
+        p1, = ax.plot(x_values, error_list[1:], "r-", label="Negative log-likelihood")
+        ##
+        ax_twinx = ax.twinx()
+        p2, = ax_twinx.plot(x_values, [i * 100 for i in opt_improve_list], 
+                    "g-", label="Error improvement (%)")
+        ##
+        ax.set_xlabel("Iteration")
+        ax.set_ylabel("Negative log-likelihood")
+        ax_twinx.set_ylabel("Error improvement (%)")
+        ##
+        ax.yaxis.label.set_color(p1.get_color())
+        ax_twinx.yaxis.label.set_color(p2.get_color())
+        ##
+        ax.tick_params(axis='y', colors=p1.get_color())
+        ax_twinx.tick_params(axis='y', colors=p2.get_color())
+        ##
+        plt.xticks(x_values, rotation=90)
+        plt.title("K = {}".format(n_features))
+        plt.savefig(train_progress_plot, bbox_inches="tight", dpi=fig_dpi)
+        plt.close()
+
+
+rule compute_tss_enrichment:
+    input:
+        feature_stats_tsv
+    params:
+        window_size = tss_window_size
+    output:
+        tss_enrich_tsv
+    threads:
+        8
+    run:
+        ### read feature values
+        feature_mat = np.matrix([], dtype=np.single)
+        for k in range(1, n_features+1):
+            f_npz = "{}/features/f{}.npz".format(annotation_dir, k)
+            fk = np.load(f_npz)["arr_0"]
+            feature_mat = np.vstack([feature_mat, fk]) if feature_mat.size else fk
+        feature_mat = feature_mat.T
+        ### read gene annotations
+        gene_df = pd.read_csv(gene_annotation_file, sep="\t")
+        gene_df = gene_df[(gene_df["chrom"] != "chrY") & (gene_df["chrom"] != "chrM")]
+        ### get average feature values (over all genes) around TSS
+        oneside_n_bins = int(params.window_size // bin_size)
+        window_n_bins = oneside_n_bins * 2 + 1 # *2 for upstream and downstream. +1 for tss itself
+        enrich_mat = np.zeros((window_n_bins, n_features), dtype=np.single)
+        gene_counter = 0
+        for row in gene_df.itertuples():
+            chrom = row.chrom
+            strand = row.strand
+            if strand == '+':
+                tss_pos = row.start
+            elif strand == '-':
+                tss_pos = row.end
+            else:
+                print("Unknown strand for gene: {} {} {}".format(row.chrom, row.start, row.end))
+                continue
+            idx_list = n_bins_df.index[(n_bins_df.chrom == chrom) & (n_bins_df.start <= tss_pos) & (tss_pos < n_bins_df.end)]
+            if len(idx_list) == 0:
+                print("Features not found for gene: {} {} {}".format(row.chrom, row.start, row.end))
+                continue
+            if len(idx_list) > 1:
+                print("TSS position found in multiple rows for gene: {} {} {}".format(row.chrom, row.start, row.end))
+            region_idx = idx_list[0]
+            ## find bin indices
+            region_start = n_bins_df.loc[region_idx].start
+            region_start_bin_idx = n_bins_df.loc[region_idx].start_bin_idx
+            region_end_bin_idx = n_bins_df.loc[region_idx].end_bin_idx
+            tss_bin_idx = region_start_bin_idx + ((tss_pos - region_start) // bin_size)
+            upstream_bin_idx = tss_bin_idx - oneside_n_bins
+            downstream_bin_idx = tss_bin_idx + oneside_n_bins
+            ## identify those upstream/downstream bins which might fall outside a region
+            if (upstream_bin_idx < region_start_bin_idx) or (downstream_bin_idx >= region_end_bin_idx):
+                print("upstream/downstream bins outside region for gene: {} {} {}".format(row.chrom, row.start, row.end))
+            gene_counter += 1
+            for k in range(n_features):
+                if strand == '+':
+                    enrich_mat[:, k] += feature_mat[upstream_bin_idx:downstream_bin_idx+1, k]
+                if strand == '-':
+                    # reverse the order for negative strand
+                    enrich_mat[:, k] += feature_mat[upstream_bin_idx:downstream_bin_idx+1, k].tolist()[::-1]
+        ## average and normalize
+        with open(feature_stats_tsv, 'r') as stats_f:
+            lines = stats_f.readlines()
+            for k in range(n_features):
+                # average
+                enrich_mat[:, k] /= gene_counter
+                # normalize by feature mean value
+                fk_mean = float(lines[k+1].strip("\n").split("\t")[3])
+                enrich_mat[:, k] /= fk_mean
+        enrichment_df = pd.DataFrame(enrich_mat, columns=f_ticks)
+        ## save to file
+        enrichment_df.to_csv(tss_enrich_tsv, sep="\t", index=False)
+
+
+rule plot_tss_enrichment:
+    input:
+        tss_enrich_tsv
+    output:
+        tss_enrich_plot
+    threads:
+        2
+    run:
+        ### read enrichment data
+        enrichment_df = pd.read_csv(tss_enrich_tsv, sep="\t")
+        ### plot
+        fig = plt.figure()
+        gs = fig.add_gridspec(n_features, hspace=.2)
+        axs = gs.subplots(sharex=True, sharey=False)
+        fig.suptitle("Average enrichment over all genes around TSS")
+        x_values = []
+        for x in range(-tss_window_size, tss_window_size+1, bin_size):
+            x_values.append(x)
+        for k in range(n_features):
+            axs[k].fill_between(x_values, 1, enrichment_df[f_ticks[k]], 
+                                where=enrichment_df[f_ticks[k]]>=1, 
+                                facecolor="crimson", interpolate=True)
+            axs[k].fill_between(x_values, 1, enrichment_df[f_ticks[k]], 
+                                where=enrichment_df[f_ticks[k]]<1, 
+                                facecolor="lightskyblue", interpolate=True)
+            axs[k].set_ylabel(f_ticks[k])
+            axs[k].yaxis.set_label_position("right")
+            axs[k].axvline(x=0, ls=':', color="black")
+        ## hide x labels and tick labels for all but bottom plot
+        for ax in axs:
+            ax.label_outer()
+        plt.savefig(tss_enrich_plot, bbox_inches="tight", dpi=fig_dpi)
+        plt.close()
+
+
+rule compute_tts_enrichment:
+    input:
+        feature_stats_tsv
+    params:
+        window_size = tts_window_size
+    output:
+        tts_enrich_tsv
+    threads:
+        8
+    run:
+        ### read feature values
+        feature_mat = np.matrix([], dtype=np.single)
+        for k in range(1, n_features+1):
+            f_npz = "{}/features/f{}.npz".format(annotation_dir, k)
+            fk = np.load(f_npz)["arr_0"]
+            feature_mat = np.vstack([feature_mat, fk]) if feature_mat.size else fk
+        feature_mat = feature_mat.T
+        ### read gene annotations
+        gene_df = pd.read_csv(gene_annotation_file, sep="\t")
+        gene_df = gene_df[(gene_df["chrom"] != "chrY") & (gene_df["chrom"] != "chrM")]
+        ### get average feature values (over all genes) around tts
+        oneside_n_bins = int(params.window_size // bin_size)
+        window_n_bins = oneside_n_bins * 2 + 1 # *2 for upstream and downstream. +1 for tts itself
+        enrich_mat = np.zeros((window_n_bins, n_features), dtype=np.single)
+        gene_counter = 0
+        for row in gene_df.itertuples():
+            chrom = row.chrom
+            strand = row.strand
+            if strand == '+':
+                tts_pos = row.end
+            elif strand == '-':
+                tts_pos = row.start
+            else:
+                print("Unknown strand for gene: {} {} {}".format(row.chrom, row.start, row.end))
+                continue
+            idx_list = n_bins_df.index[(n_bins_df.chrom == chrom) & (n_bins_df.start <= tts_pos) & (tts_pos < n_bins_df.end)]
+            if len(idx_list) == 0:
+                print("Features not found for gene: {} {} {}".format(row.chrom, row.start, row.end))
+                continue
+            if len(idx_list) > 1:
+                print("tts position found in multiple rows for gene: {} {} {}".format(row.chrom, row.start, row.end))
+            region_idx = idx_list[0]
+            ## find bin indices
+            region_start = n_bins_df.loc[region_idx].start
+            region_start_bin_idx = n_bins_df.loc[region_idx].start_bin_idx
+            region_end_bin_idx = n_bins_df.loc[region_idx].end_bin_idx
+            tts_bin_idx = region_start_bin_idx + ((tts_pos - region_start) // bin_size)
+            upstream_bin_idx = tts_bin_idx - oneside_n_bins
+            downstream_bin_idx = tts_bin_idx + oneside_n_bins
+            ## identify those upstream/downstream bins which might fall outside a region
+            if (upstream_bin_idx < region_start_bin_idx) or (downstream_bin_idx >= region_end_bin_idx):
+                print("upstream/downstream bins outside region for gene: {} {} {}".format(row.chrom, row.start, row.end))
+            gene_counter += 1
+            for k in range(n_features):
+                if strand == '+':
+                    enrich_mat[:, k] += feature_mat[upstream_bin_idx:downstream_bin_idx+1, k]
+                if strand == '-':
+                    # reverse the order for negative strand
+                    enrich_mat[:, k] += feature_mat[upstream_bin_idx:downstream_bin_idx+1, k].tolist()[::-1]
+        ## average and normalize
+        with open(feature_stats_tsv, 'r') as stats_f:
+            lines = stats_f.readlines()
+            for k in range(n_features):
+                # average
+                enrich_mat[:, k] /= gene_counter
+                # normalize by feature mean value
+                fk_mean = float(lines[k+1].strip("\n").split("\t")[3])
+                enrich_mat[:, k] /= fk_mean
+        enrichment_df = pd.DataFrame(enrich_mat, columns=f_ticks)
+        ## save to file
+        enrichment_df.to_csv(tts_enrich_tsv, sep="\t", index=False)
+
+
+rule plot_tts_enrichment:
+    input:
+        tts_enrich_tsv
+    output:
+        tts_enrich_plot
+    threads:
+        2
+    run:
+        ### read enrichment data
+        enrichment_df = pd.read_csv(tts_enrich_tsv, sep="\t")
+        ### plot
+        fig = plt.figure()
+        gs = fig.add_gridspec(n_features, hspace=.2)
+        axs = gs.subplots(sharex=True, sharey=False)
+        fig.suptitle("Average enrichment over all genes around TTS")
+        x_values = []
+        for x in range(-tts_window_size, tts_window_size+1, bin_size):
+            x_values.append(x)
+        for k in range(n_features):
+            axs[k].fill_between(x_values, 1, enrichment_df[f_ticks[k]], 
+                                where=enrichment_df[f_ticks[k]]>=1, 
+                                facecolor="crimson", interpolate=True)
+            axs[k].fill_between(x_values, 1, enrichment_df[f_ticks[k]], 
+                                where=enrichment_df[f_ticks[k]]<1, 
+                                facecolor="lightskyblue", interpolate=True)
+            axs[k].set_ylabel(f_ticks[k])
+            axs[k].yaxis.set_label_position("right")
+            axs[k].axvline(x=0, ls=':', color="black")
+        ## hide x labels and tick labels for all but bottom plot
+        for ax in axs:
+            ax.label_outer()
+        plt.savefig(tts_enrich_plot, bbox_inches="tight", dpi=fig_dpi)
+        plt.close()

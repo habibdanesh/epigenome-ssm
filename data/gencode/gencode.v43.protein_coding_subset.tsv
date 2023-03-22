@@ -1,0 +1,11 @@
+chrom	type	start	end	strand	attributes
+chr1	gene	65418	71584	+	ID=ENSG00000186092.7;gene_id=ENSG00000186092.7;gene_type=protein_coding;gene_name=OR4F5;level=2;hgnc_id=HGNC:14825;havana_gene=OTTHUMG00000001094.4
+chr1	gene	450739	451677	-	ID=ENSG00000284733.2;gene_id=ENSG00000284733.2;gene_type=protein_coding;gene_name=OR4F29;level=2;hgnc_id=HGNC:31275;havana_gene=OTTHUMG00000002860.3
+chr1	gene	685715	686653	-	ID=ENSG00000284662.2;gene_id=ENSG00000284662.2;gene_type=protein_coding;gene_name=OR4F16;level=2;hgnc_id=HGNC:15079;havana_gene=OTTHUMG00000002581.3
+chr1	gene	923922	944574	+	ID=ENSG00000187634.13;gene_id=ENSG00000187634.13;gene_type=protein_coding;gene_name=SAMD11;level=2;hgnc_id=HGNC:28706;havana_gene=OTTHUMG00000040719.11
+chr1	gene	944202	959308	-	ID=ENSG00000188976.11;gene_id=ENSG00000188976.11;gene_type=protein_coding;gene_name=NOC2L;level=2;hgnc_id=HGNC:24517;havana_gene=OTTHUMG00000040720.2
+chr1	gene	960583	965718	+	ID=ENSG00000187961.15;gene_id=ENSG00000187961.15;gene_type=protein_coding;gene_name=KLHL17;level=2;hgnc_id=HGNC:24023;havana_gene=OTTHUMG00000040721.8
+chr1	gene	966481	975864	+	ID=ENSG00000187583.11;gene_id=ENSG00000187583.11;gene_type=protein_coding;gene_name=PLEKHN1;level=2;hgnc_id=HGNC:25284;havana_gene=OTTHUMG00000040756.5
+chr1	gene	975197	982116	-	ID=ENSG00000187642.10;gene_id=ENSG00000187642.10;gene_type=protein_coding;gene_name=PERM1;level=2;hgnc_id=HGNC:28208;havana_gene=OTTHUMG00000040757.3
+chr1	gene	998961	1000171	-	ID=ENSG00000188290.11;gene_id=ENSG00000188290.11;gene_type=protein_coding;gene_name=HES4;level=2;hgnc_id=HGNC:24149;havana_gene=OTTHUMG00000040758.2
+chr1	gene	1001137	1014539	+	ID=ENSG00000187608.10;gene_id=ENSG00000187608.10;gene_type=protein_coding;gene_name=ISG15;level=2;hgnc_id=HGNC:4053;havana_gene=OTTHUMG00000040777.4

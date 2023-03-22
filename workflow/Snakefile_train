@@ -11,7 +11,6 @@ debug = config["debug"]
 ### paths
 scripts_dir = root_path + "/workflow/scripts"
 training_dir = out_dir + "/training"
-plots_dir = out_dir + "/plots"
 
 ### track and file names
 in_files_locator = in_dir + "/file_locator.tsv"
@@ -33,23 +32,13 @@ with open(in_files_locator, 'r') as in_f_locator:
         tracks.append(track)
         track_in_files.append(path)
 model_json = training_dir + "/model.json"
-##
-err_plot_file = plots_dir + "/error_plot.pdf"
-time_plot_file = plots_dir + "/optimization_time_plot.pdf"
-emission_plot_file = plots_dir + "/emission_plot.pdf"
-transition_plot_file = plots_dir + "/transition_plot.pdf"
 
 
 ### rules
 rule all:
     input:
         ## run_training
-        model_json,
-        ## plot
-        err_plot_file,
-        time_plot_file,
-        emission_plot_file,
-        transition_plot_file
+        model_json
 
 
 rule run_training:
@@ -74,18 +63,3 @@ rule run_training:
         workflow.cores
     script:
         scripts_dir + "/run_training.py"
-
-
-rule plot:
-    input:
-        model_json = model_json
-    params:
-        tracks = tracks,
-        n_features = n_features
-    output:
-        err_plot_file = err_plot_file,
-        time_plot_file = time_plot_file,
-        emission_plot_file = emission_plot_file,
-        transition_plot_file = transition_plot_file
-    script:
-        scripts_dir + "/plot.py"
