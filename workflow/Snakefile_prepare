@@ -85,19 +85,8 @@ rule get_bigwig_subset:
         regions_files = chrom_regions_files,
         bw_avg_over_bed_src = bw_avg_over_bed_src
     output:
-        out_files = track_bg_files
+        out_npz_files = track_npz_files
     threads:
         workflow.cores
     script:
         scripts_dir + "/get_bigwig_subset.py"
-
-
-rule convert_to_npz:
-    input:
-        in_files = track_bg_files
-    output:
-        out_files = track_npz_files
-    threads:
-        workflow.cores
-    script:
-        scripts_dir + "/bedgraph_to_npz.py"
