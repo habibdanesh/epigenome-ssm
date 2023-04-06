@@ -12,6 +12,8 @@ arg_parser.add_argument("--n_bins_file", required=False,
                         help="Path to BED file containing number of bins in each region")
 arg_parser.add_argument("-b", "--binsize", type=int, required=False, default=200, 
                         help="Bin size (resolution) to average the signals")
+arg_parser.add_argument("--custom_element_file", required=False,
+                        help="Path to tab-separated file containing elements coordinates and other info")
 arg_parser.add_argument("-m", "--modeltype", required=False, default="stacked", choices=["stacked", "concatenated"], 
                         help="Type of model")
 arg_parser.add_argument("-k", "--nfeatures", type=int, required=False, default=5, 
@@ -34,6 +36,7 @@ def run_pipeline():
     in_dir = args.indir
     n_bins_file = args.n_bins_file
     bin_size = args.binsize
+    custom_element_file = args.custom_element_file
     model_type = args.modeltype
     n_features = args.nfeatures
     out_dir = args.outdir
@@ -75,8 +78,8 @@ def run_pipeline():
             cmd += " --cores"
         else:
             cmd += " --cores {}".format(n_cores)
-        cmd += " --config root_path={} in_dir={} n_bins_file={} bin_size={} out_dir={} debug={}".format(
-                            root_path, in_dir, n_bins_file, bin_size, out_dir, debug)
+        cmd += " --config root_path={} in_dir={} n_bins_file={} bin_size={} custom_element_file={} out_dir={} debug={}".format(
+                            root_path, in_dir, n_bins_file, bin_size, custom_element_file, out_dir, debug)
         if dry_run:
             cmd += " -n"
         print(cmd)

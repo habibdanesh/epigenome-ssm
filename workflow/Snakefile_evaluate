@@ -2,6 +2,8 @@ import json
 import numpy as np
 from scipy.stats import gaussian_kde
 import pandas as pd
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -10,6 +12,7 @@ root_path = config["root_path"]
 in_dir = config["in_dir"]
 n_bins_file = config["n_bins_file"] # TODO path to this file should be saved in model_json
 bin_size = config["bin_size"] # TODO bin_size should be saved in model_json
+custom_element_file = config["custom_element_file"]
 out_dir = config["out_dir"]
 debug = config["debug"]
 
@@ -20,6 +23,7 @@ training_dir = in_dir + "/training"
 annotation_dir = in_dir + "/annotation"
 features_dir = annotation_dir + "/features"
 plots_dir = out_dir + "/plots"
+custom_elements_dir = out_dir + "/plots/custom-elements"
 model_json = training_dir + "/model.json"
 
 ### model parameters
@@ -88,6 +92,16 @@ tss_enrich_plot = "{}/enrichment_tss.pdf".format(plots_dir)
 ## TTS enrichment
 tts_enrich_tsv = "{}/enrichment_tts.tsv".format(plots_dir)
 tts_enrich_plot = "{}/enrichment_tts.pdf".format(plots_dir)
+## custom element enrichment
+element_enrich_tsvs = []
+element_enrich_plots = []
+with open(custom_element_file, 'r') as custom_element_f:
+    lines = custom_element_f.readlines()
+for line in lines[1:]:
+    line_info = line.strip("\n").split()
+    element_id = line_info[0]
+    element_enrich_tsvs.append("{}/enrichment_{}.tsv".format(custom_elements_dir, element_id))
+    element_enrich_plots.append("{}/enrichment_{}.pdf".format(custom_elements_dir, element_id))
 
 
 ### rules
@@ -102,7 +116,7 @@ rule all:
         ## plot_emission
         emission_asort_plot,
         ## plot_emission_scatter
-        emission_scatter_plots,
+        #emission_scatter_plots,
         ## plot_training_progress
         train_progress_plot,
         ## compute_tss_enrichment
@@ -112,7 +126,11 @@ rule all:
         ## compute_tts_enrichment
         tts_enrich_tsv,
         ## plot_tts_enrichment
-        tts_enrich_plot
+        tts_enrich_plot,
+        ## compute_custom_element_enrichment
+        element_enrich_tsvs,
+        ## plot_custom_element_enrichment
+        element_enrich_plots
 
 
 rule get_feature_stats:
@@ -142,7 +160,7 @@ rule plot_transition:
         transition_diag_plot,
         transition_offdiag_plot
     threads:
-        2
+        workflow.cores
     run:
         ### plot transition
         ax = sns.heatmap(transition_mat, square=True, cmap="Oranges", robust=True,
@@ -183,7 +201,7 @@ rule plot_emission:
         emission_asort_plot
         # NOTE: don't need to include emission_esort_plot in the output bcause it's not needed for concatenated models
     threads:
-        4
+        workflow.cores
     run:
         if model_type == "stacked":
             ### generate both emission_asort_plot and emission_esort_plot
@@ -241,7 +259,7 @@ rule plot_emission_scatter:
     output:
         emission_scatter_plots
     threads:
-        4
+        workflow.cores
     run:
         ### normalize the emissions by feature mean values
         norm_emission_mat = emission_mat
@@ -295,7 +313,7 @@ rule plot_training_progress:
     output:
         train_progress_plot
     threads:
-        2
+        workflow.cores
     run:
         x_values = range(1, len(error_list[1:])+1)
         ##
@@ -401,7 +419,7 @@ rule plot_tss_enrichment:
     output:
         tss_enrich_plot
     threads:
-        2
+        workflow.cores
     run:
         ### read enrichment data
         enrichment_df = pd.read_csv(tss_enrich_tsv, sep="\t")
@@ -509,7 +527,7 @@ rule plot_tts_enrichment:
     output:
         tts_enrich_plot
     threads:
-        2
+        workflow.cores
     run:
         ### read enrichment data
         enrichment_df = pd.read_csv(tts_enrich_tsv, sep="\t")
@@ -536,3 +554,113 @@ rule plot_tts_enrichment:
             ax.label_outer()
         plt.savefig(tts_enrich_plot, bbox_inches="tight", dpi=fig_dpi)
         plt.close()
+
+
+rule compute_custom_element_enrichment:
+    input:
+        feature_stats_tsv
+    output:
+        element_enrich_tsvs
+    threads:
+        8
+    run:
+        ### read feature values
+        feature_mat = np.matrix([], dtype=np.single)
+        for k in range(1, n_features+1):
+            f_npz = "{}/features/f{}.npz".format(annotation_dir, k)
+            fk = np.load(f_npz)["arr_0"]
+            feature_mat = np.vstack([feature_mat, fk]) if feature_mat.size else fk
+        feature_mat = feature_mat.T
+        ### read element annotations
+        with open(custom_element_file, 'r') as custom_element_f:
+            lines = custom_element_f.readlines()
+        ### get average feature values
+        for i, line in enumerate(lines[1:]):
+            line_info = line.strip("\n").split()
+            element_id = line_info[0]
+            chrom = line_info[1]
+            start = int(line_info[2])
+            end = int(line_info[3])
+            middle = start + int(round((end - start) / 2))
+            oneside_n_bins = int((middle - start) // bin_size)
+            window_n_bins = oneside_n_bins * 2 + 1 # *2 for upstream and downstream. +1 for middle point
+            enrich_mat = np.zeros((window_n_bins, n_features), dtype=np.single)
+            idx_list = n_bins_df.index[(n_bins_df.chrom == chrom) & (n_bins_df.start <= middle) & (middle < n_bins_df.end)]
+            if len(idx_list) == 0:
+                print("Features not found for element: {} {} {}".format(chrom, start, end))
+                continue
+            if len(idx_list) > 1:
+                print("Middle position found in multiple rows for element: {} {} {}".format(chrom, start, end))
+            region_idx = idx_list[0]
+            ## find bin indices
+            region_start = n_bins_df.loc[region_idx].start
+            region_start_bin_idx = n_bins_df.loc[region_idx].start_bin_idx
+            region_end_bin_idx = n_bins_df.loc[region_idx].end_bin_idx
+            middle_bin_idx = region_start_bin_idx + ((middle - region_start) // bin_size)
+            upstream_bin_idx = middle_bin_idx - oneside_n_bins
+            downstream_bin_idx = middle_bin_idx + oneside_n_bins
+            ## identify those upstream/downstream bins which might fall outside a region
+            if (upstream_bin_idx < region_start_bin_idx) or (downstream_bin_idx >= region_end_bin_idx):
+                print("upstream/downstream bins outside region for element: {} {} {}".format(chrom, start, end))
+            for k in range(n_features):
+                enrich_mat[:, k] += feature_mat[upstream_bin_idx:downstream_bin_idx+1, k]
+            ## average and normalize
+            with open(feature_stats_tsv, 'r') as stats_f:
+                lines = stats_f.readlines()
+                for k in range(n_features):
+                    # normalize by feature mean value
+                    fk_mean = float(lines[k+1].strip("\n").split("\t")[3])
+                    enrich_mat[:, k] /= fk_mean
+            enrichment_df = pd.DataFrame(enrich_mat, columns=f_ticks)
+            ## save to file
+            enrichment_df.to_csv(element_enrich_tsvs[i], sep="\t", index=False)
+
+
+rule plot_custom_element_enrichment:
+    input:
+        element_enrich_tsvs
+    output:
+        element_enrich_plots
+    threads:
+        workflow.cores
+    run:
+        with open(custom_element_file, 'r') as custom_element_f:
+            lines = custom_element_f.readlines()
+        for i, line in enumerate(lines[1:]):
+            line_info = line.strip("\n").split()
+            element_id = line_info[0]
+            start = int(line_info[2])
+            ### read enrichment data
+            enrich_tsv = element_enrich_tsvs[i]
+            enrichment_df = pd.read_csv(enrich_tsv, sep="\t")
+            ### vline coordinate
+            vlines = []
+            for c in line_info[4:]:
+                if int(c) != -1:
+                    vlines.append(int(c) - start)
+            ### plot
+            fig = plt.figure()
+            gs = fig.add_gridspec(n_features, hspace=.2)
+            axs = gs.subplots(sharex=True, sharey=False)
+            fig.suptitle(element_id)
+            x_values = []
+            oneside_window_size = int((enrichment_df.shape[0] - 1) / 2 * bin_size)
+            for x in range(-oneside_window_size, oneside_window_size+1, bin_size):
+                x_values.append(x)
+            for k in range(n_features):
+                axs[k].fill_between(x_values, 1, enrichment_df[f_ticks[k]], 
+                                    where=enrichment_df[f_ticks[k]]>=1, 
+                                    facecolor="crimson", interpolate=True)
+                axs[k].fill_between(x_values, 1, enrichment_df[f_ticks[k]], 
+                                    where=enrichment_df[f_ticks[k]]<1, 
+                                    facecolor="lightskyblue", interpolate=True)
+                axs[k].set_ylabel(f_ticks[k])
+                axs[k].yaxis.set_label_position("right")
+                axs[k].axvline(x=0, ls='--', color="black")
+                for vline_coord in vlines:
+                    axs[k].axvline(x=-oneside_window_size+vline_coord, ls=':', color="black")
+            ## hide x labels and tick labels for all but bottom plot
+            for ax in axs:
+                ax.label_outer()
+            plt.savefig(element_enrich_plots[i], bbox_inches="tight", dpi=fig_dpi)
+            plt.close()
