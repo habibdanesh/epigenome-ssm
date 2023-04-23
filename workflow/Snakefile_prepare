@@ -29,7 +29,7 @@ track_bg_files = []
 track_npz_files = []
 with open(in_files_locator, 'r') as in_f_locator, open(out_files_locator, 'w') as out_f_locator:
     for line in in_f_locator.readlines():
-        columns = line.strip("\n").split("\t")
+        columns = line.strip("\n").split()
         epigenome = columns[0]
         assay = columns[1]
         path = columns[2]
@@ -47,7 +47,7 @@ chroms = []
 with open(regions_file, 'r') as regions_f:
     regions = regions_f.readlines()
     for line in regions:
-        columns = line.split("\t")
+        columns = line.split()
         chrom = columns[0]
         if chrom not in chroms:
             chroms.append(chrom)
