@@ -18,6 +18,34 @@ max_iter = snakemake.params.max_iter
 min_improvement = snakemake.params.min_improvement
 model_json = snakemake.output.model_json
 
+def save_model(itr):
+    ### save the model
+    model_params = {
+        "seed": model.seed,
+        "model_type": model_type,
+        'K': n_features,
+        'E': num_tracks,
+        "nonneg_state": True,
+        "sumone_state": False,
+        "nonneg_em": True,
+        "message_passing": True,
+        "lambda_1_l2": lambda_1_l2,
+        "lambda_2_l1": lambda_2_l1,
+        "lambda_2_l2": lambda_2_l2,
+        "lambda_3_l2": lambda_3_l2,
+        "theta_m": model.theta_m.tolist(),
+        "lambda_m": model.lambda_m.tolist(),
+        "error_m": model.error_m,
+        "improve_m": model.improve_m,
+        "opt_time_m": model.opt_time_m,
+        "assays": assays,
+        "epigenomes": epigenomes
+    }
+    with open(f"{model_json[:-5]}.itr{itr}.json", 'w') as out_file:
+        json.dump(model_params, out_file, indent=4)
+    with open(model_json, 'w') as out_file:
+        json.dump(model_params, out_file, indent=4)
+
 ### read input data
 ## stacked model
 if model_type == "stacked":
@@ -72,36 +100,14 @@ model.re_init(seed=best_seed)
 iter_step = 5
 model.optimization(iteration=iter_step)
 iter_passed = iter_step
+save_model(iter_passed)
 print("# iterations passed: {}".format(iter_passed))
 while iter_passed < max_iter:
     model.optimization(iteration=iter_step, carryon=True)
     iter_passed += iter_step
+    save_model(iter_passed)
     print("# iterations passed: {}".format(iter_passed))
     if np.mean(model.improve_m[-iter_step:]) < min_improvement: # if training is not progressing
         break
 print("# iterations: {}".format(iter_passed))
-
-### save the model
-model_params = {
-    "seed": model.seed,
-    "model_type": model_type,
-    'K': n_features,
-    'E': num_tracks,
-    "nonneg_state": True,
-    "sumone_state": False,
-    "nonneg_em": True,
-    "message_passing": True,
-    "lambda_1_l2": lambda_1_l2,
-    "lambda_2_l1": lambda_2_l1,
-    "lambda_2_l2": lambda_2_l2,
-    "lambda_3_l2": lambda_3_l2,
-    "theta_m": model.theta_m.tolist(),
-    "lambda_m": model.lambda_m.tolist(),
-    "error_m": model.error_m,
-    "improve_m": model.improve_m,
-    "opt_time_m": model.opt_time_m,
-    "assays": assays,
-    "epigenomes": epigenomes
-}
-with open(model_json, 'w') as out_file:
-    json.dump(model_params, out_file, indent=4)
+save_model(iter_passed)
