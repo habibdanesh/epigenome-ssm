@@ -67,10 +67,10 @@ class ssm(object):
         self.lambda_m_transpose = self.lambda_m.T
 
     def set_x(self, x):
-        self.x_m = copy.deepcopy(x)
+        self.x_m = x
 
     def set_y(self, y):
-        self.y_m = copy.deepcopy(y)
+        self.y_m = y
 
     def set_theta(self, theta_m):
         self.theta_m = copy.deepcopy(theta_m)
