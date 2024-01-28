@@ -7,6 +7,7 @@ root_path = config["root_path"]
 in_dir = config["in_dir"]
 out_dir = config["out_dir"]
 debug = config["debug"]
+existing_model = config["model"]
 
 ### paths
 scripts_dir = root_path + "/workflow/scripts"
@@ -14,7 +15,10 @@ training_dir = out_dir + "/training"
 annotation_dir = out_dir + "/annotation"
 features_dir = annotation_dir + "/features"
 plots_dir = out_dir + "/plots"
-model_json = training_dir + "/model.json"
+if existing_model is not None:
+    model_json = existing_model
+else:
+    model_json = training_dir + "/model.json"
 
 ### model parameters
 with open(model_json, 'r') as model_f:

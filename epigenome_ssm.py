@@ -20,6 +20,8 @@ arg_parser.add_argument("-k", "--nfeatures", type=int, required=False, default=5
                         help="Number of chromatin state features")
 arg_parser.add_argument("-o", "--outdir", required=False, 
                         help="Output directory to save the generated files")
+arg_parser.add_argument("--model", required=False, 
+                        help="Path to an existing model")
 arg_parser.add_argument("-p", "--cores", type=int, required=False, default=1, 
                         help="Number of CPU cores")
 arg_parser.add_argument("--debug", required=False, action="store_true", 
@@ -40,6 +42,7 @@ def run_pipeline():
     model_type = args.modeltype
     n_features = args.nfeatures
     out_dir = args.outdir
+    model = args.model
     n_cores = args.cores
     dry_run = args.dryrun
     debug = args.debug
@@ -50,8 +53,8 @@ def run_pipeline():
             cmd += " --cores"
         else:
             cmd += " --cores {}".format(n_cores)
-        cmd += " --config root_path={} in_dir={} model_type={} n_features={} out_dir={} debug={}".format(
-                            root_path, in_dir, model_type, n_features, out_dir, debug)
+        cmd += " --config root_path={} in_dir={} model_type={} n_features={} out_dir={} model={} debug={}".format(
+                            root_path, in_dir, model_type, n_features, out_dir, model, debug)
         if dry_run:
             cmd += " -n"
         print(cmd)

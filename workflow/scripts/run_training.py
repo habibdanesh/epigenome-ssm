@@ -1,3 +1,4 @@
+import os
 import json
 import numpy as np
 import ssm
@@ -16,6 +17,7 @@ lambda_3_l2 = snakemake.params.lambda_3_l2
 n_rand_init = snakemake.params.n_rand_init
 max_iter = snakemake.params.max_iter
 min_improvement = snakemake.params.min_improvement
+existing_model = snakemake.params.existing_model
 model_json = snakemake.output.model_json
 
 def save_model(itr):
@@ -85,17 +87,29 @@ model = ssm.ssm(E=num_tracks, G=num_positions, K=n_features, \
             verbose=False)
 ##
 model.set_x(np.asmatrix(X_df))
-## multiple random initialization
-np.random.seed()
-seeds = []
-errors = []
-for t in range(n_rand_init):
-    s = np.random.randint(1000000)
-    model.re_init(seed=s)
-    seeds.append(s)
-    errors.append(model.total_error())
-best_seed = seeds[np.argmin(errors)]
-model.re_init(seed=best_seed)
+if os.path.isfile(existing_model):
+    print(type(existing_model)) # FIXME
+    # Load model parameters
+    with open(existing_model, 'r') as model_f:
+        model_params = json.load(model_f)
+        model.set_theta(np.asmatrix(model_params["theta_m"]))
+        model.set_lambda(np.asmatrix(model_params["lambda_m"]))
+        model.set_error_m(model_params["error_m"])
+        model.set_improve_m(model_params["improve_m"])
+        model.set_opt_time(model_params["opt_time_m"])
+else:
+    print(type(existing_model)) # FIXME
+    # multiple random initialization
+    np.random.seed()
+    seeds = []
+    errors = []
+    for t in range(n_rand_init):
+        s = np.random.randint(1000000)
+        model.re_init(seed=s)
+        seeds.append(s)
+        errors.append(model.total_error())
+    best_seed = seeds[np.argmin(errors)]
+    model.re_init(seed=best_seed)
 ## optimization
 iter_step = 5
 model.optimization(iteration=iter_step)
