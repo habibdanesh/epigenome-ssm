@@ -58,8 +58,8 @@ if model_type == "stacked":
         npz_obj = np.load(in_f, mmap_mode='r')
         X_df = np.vstack([X_df, npz_obj["arr_0"][bin_start:bin_end]]) \
                             if X_df.size else npz_obj["arr_0"][bin_start:bin_end]
-        print("X_df size (MB): {}".format(X_df.size * X_df.itemsize / (1024 * 1024)))
-        print_mem_usage()
+        #print("X_df size (MB): {}".format(X_df.size * X_df.itemsize / (1024 * 1024)))
+        #print_mem_usage()
     print_mem_usage()
 ## concatenated model
 if model_type == "concatenated":

@@ -80,6 +80,15 @@ class ssm(object):
         self.lambda_m = copy.deepcopy(lambda_m)
         self.lambda_m_transpose = self.lambda_m.T
 
+    def set_error_m(self, error_m):
+        self.error_m = copy.deepcopy(error_m)
+
+    def set_improve_m(self, improve_m):
+        self.improve_m = copy.deepcopy(improve_m)
+
+    def set_opt_time(self, opt_time_m):
+        self.opt_time_m = copy.deepcopy(opt_time_m)
+
     def total_error(self):
         t_error, e_error, r_error = self.get_error()
         return t_error + e_error + r_error
