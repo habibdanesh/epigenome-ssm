@@ -256,15 +256,10 @@ class ssm(object):
 
     def update_y_idv(self):
         expression_1 = (self.theta_m * self.theta_m_transpose + self.lambda_m_transpose * self.lambda_m + (1 + self.lambda_1_l2) * np.eye(self.K)).I
-        g = 0
-        while g < self.G:
-            if g == 0:
-                self.y_m[:, g] = expression_1 * (self.lambda_m_transpose * self.y_m[:, g + 1] + self.theta_m * self.x_m[:, g])
-            elif g == self.G - 1:
-                self.y_m[:, g] = expression_1 * (self.lambda_m * self.y_m[:, g - 1] + self.theta_m * self.x_m[:, g])
-            else:
-                self.y_m[:, g] = expression_1 * (self.lambda_m * self.y_m[:, g - 1] + self.lambda_m_transpose * self.y_m[:,g + 1] + self.theta_m * self.x_m[:, g])
-            g += 1
+        self.y_m[:, 0] = expression_1 * (self.lambda_m_transpose * self.y_m[:, 1] + self.theta_m * self.x_m[:, 0]) # First position
+        for g in range(1, self.G-1):
+            self.y_m[:, g] = expression_1 * (self.lambda_m * self.y_m[:, g - 1] + self.lambda_m_transpose * self.y_m[:,g + 1] + self.theta_m * self.x_m[:, g])
+        self.y_m[:, -1] = expression_1 * (self.lambda_m * self.y_m[:, -2] + self.theta_m * self.x_m[:, -1]) # Last position
     
     def update_theta(self, lhs_m, rhs_m):
         """
