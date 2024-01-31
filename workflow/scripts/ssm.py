@@ -154,8 +154,8 @@ class ssm(object):
         a_m_initial = self.theta_m * self.theta_m_transpose + self.lambda_1_l2 * K_eye
         a_m = a_m_initial
         b_m = (-2 * self.x_m[:, g].T * self.theta_m_transpose).T
-        self.message_dic["a_m_f"].append(copy.deepcopy(a_m))
-        self.message_dic["b_m_f"].append(copy.deepcopy(b_m))
+        self.message_dic["a_m_f"].append(a_m)
+        self.message_dic["b_m_f"].append(b_m)
         lambda_m_square = self.lambda_m_transpose * self.lambda_m
         while g <= self.G - 2:
             # update
@@ -174,8 +174,8 @@ class ssm(object):
                         - 2 * self.x_m[:, g].T * self.theta_m_transpose).T
             a_m = a_m_next
             b_m = b_m_next
-            self.message_dic["a_m_f"].append(copy.deepcopy(a_m))
-            self.message_dic["b_m_f"].append(copy.deepcopy(b_m))
+            self.message_dic["a_m_f"].append(a_m)
+            self.message_dic["b_m_f"].append(b_m)
 
     def backward(self):
         g = self.G - 1
@@ -184,8 +184,8 @@ class ssm(object):
         a_m_initial = self.theta_m * self.theta_m_transpose + self.lambda_1_l2 * K_eye
         a_m = a_m_initial
         b_m = (-2 * self.x_m[:, g].T * self.theta_m_transpose).T
-        self.message_dic["a_m_b"].insert(0, copy.deepcopy(a_m))
-        self.message_dic["b_m_b"].insert(0, copy.deepcopy(b_m))
+        self.message_dic["a_m_b"].insert(0, a_m)
+        self.message_dic["b_m_b"].insert(0, b_m)
         while g > 0:
             g -= 1
             b_m_transpose = b_m.T
@@ -203,8 +203,8 @@ class ssm(object):
                         - expression_4 * (expression_2)).T
             a_m = a_m_next
             b_m = b_m_next
-            self.message_dic["a_m_b"].insert(0, copy.deepcopy(a_m))
-            self.message_dic["b_m_b"].insert(0, copy.deepcopy(b_m))
+            self.message_dic["a_m_b"].insert(0, a_m)
+            self.message_dic["b_m_b"].insert(0, b_m)
     
     def update_y(self):
         expression_1 = self.theta_m * self.theta_m_transpose + self.lambda_1_l2 * np.eye(self.K)
