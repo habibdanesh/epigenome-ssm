@@ -88,7 +88,6 @@ model = ssm.ssm(E=num_tracks, G=num_positions, K=n_features, \
 ##
 model.set_x(np.asmatrix(X_df))
 if os.path.isfile(existing_model):
-    print(type(existing_model)) # FIXME
     # Load model parameters
     with open(existing_model, 'r') as model_f:
         model_params = json.load(model_f)
@@ -98,7 +97,6 @@ if os.path.isfile(existing_model):
         model.set_improve_m(model_params["improve_m"])
         model.set_opt_time(model_params["opt_time_m"])
 else:
-    print(type(existing_model)) # FIXME
     # multiple random initialization
     np.random.seed()
     seeds = []
