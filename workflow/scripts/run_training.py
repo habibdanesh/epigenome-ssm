@@ -30,7 +30,7 @@ def save_model(itr):
         "nonneg_state": True,
         "sumone_state": False,
         "nonneg_em": True,
-        "message_passing": True,
+        "message_passing": False,
         "lambda_1_l2": lambda_1_l2,
         "lambda_2_l1": lambda_2_l1,
         "lambda_2_l2": lambda_2_l2,
@@ -83,7 +83,7 @@ X_df = np.arcsinh(X_df)
 ### run ssm training
 model = ssm.ssm(E=num_tracks, G=num_positions, K=n_features, \
             lambda_1_l2=lambda_1_l2, lambda_2_l1=lambda_2_l1, lambda_2_l2=lambda_2_l2, lambda_3_l2=lambda_3_l2, \
-            positive_state=True, sumone_state=False, positive_em=True, message_passing=True, \
+            positive_state=True, sumone_state=False, positive_em=True, message_passing=False, \
             verbose=False)
 ##
 model.set_x(np.asmatrix(X_df))

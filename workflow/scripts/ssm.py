@@ -366,9 +366,9 @@ class ssm(object):
         self.message_dic["c_m_f"] = []
         self.message_dic["c_m_b"] = []
         # use forward_backward message to update y
-        self.forward()
-        self.backward()
         if self.message_passing:
+            self.forward()
+            self.backward()
             self.update_y()
         else:
             self.update_y_idv()
@@ -413,7 +413,7 @@ if __name__ == "__main__":
     ### run ssm
     model = ssm(seed=seed, E=E, G=G, K=K, 
                 lambda_1_l2=LAMBDA_1_L2, lambda_2_l1=LAMBDA_2_L1, lambda_2_l2=LAMBDA_2_L2, lambda_3_l2=LAMBDA_3_L2, 
-                positive_state=True, sumone_state=False, positive_em=True, message_passing=True,
+                positive_state=True, sumone_state=False, positive_em=True, message_passing=False,
                 n_threads=1, verbose=False)
     test_iteration = 10
     model.optimization(test_iteration)
