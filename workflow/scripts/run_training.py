@@ -86,13 +86,13 @@ model = ssm.ssm(E=num_tracks, G=num_positions, K=n_features, \
             positive_state=True, sumone_state=False, positive_em=True, message_passing=False, \
             verbose=False)
 ##
-model.set_x(np.asmatrix(X_df))
+model.set_x(X_df)
 if os.path.isfile(existing_model):
     # Load model parameters
     with open(existing_model, 'r') as model_f:
         model_params = json.load(model_f)
-        model.set_theta(np.asmatrix(model_params["theta_m"]))
-        model.set_lambda(np.asmatrix(model_params["lambda_m"]))
+        model.set_theta(model_params["theta_m"])
+        model.set_lambda(model_params["lambda_m"])
         model.set_error_m(model_params["error_m"])
         model.set_improve_m(model_params["improve_m"])
         model.set_opt_time(model_params["opt_time_m"])

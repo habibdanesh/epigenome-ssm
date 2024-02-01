@@ -37,11 +37,11 @@ class ssm(object):
         self.verbose = verbose
         self.precision = sys.float_info.epsilon
         
-        self.x_m = np.asmatrix(np.random.rand(self.E, self.G))
-        self.y_m = np.asmatrix(np.random.dirichlet(np.ones(self.K), size=self.G)).T
-        self.theta_m = np.asmatrix(np.random.rand(self.K, self.E))
+        self.x_m = np.random.rand(self.E, self.G)
+        self.y_m = np.random.dirichlet(np.ones(self.K), size=self.G).T
+        self.theta_m = np.random.rand(self.K, self.E)
         self.theta_m_transpose = self.theta_m.T
-        self.lambda_m = np.asmatrix(np.eye(self.K))
+        self.lambda_m = np.eye(self.K)
         self.lambda_m_transpose = self.lambda_m.T
         self.error_m = []
         self.improve_m = [] # percentage of error improvement with respect to the previous iteration
@@ -49,21 +49,21 @@ class ssm(object):
         self.message_dic = {"a_m_f": [], "b_m_f": [], "c_m_f": [], "c_m_b": [], "a_m_b": [], "b_m_b": []}
         
     def initialize(self):
-        self.y_m = np.asmatrix(np.random.dirichlet(np.ones(self.K), size=self.G)).T
+        self.y_m = np.random.dirichlet(np.ones(self.K), size=self.G).T
         g = 0
         while g < self.G:
             self.x_m[:, g] = (
-                np.matrix(np.random.multivariate_normal((self.theta_m_transpose * self.y_m[:, g]).flatten().tolist()[0], np.eye(self.E)))).T
+                np.random.multivariate_normal((self.theta_m_transpose * self.y_m[:, g]).flatten().tolist()[0], np.eye(self.E))).T
             g += 1
         self.message_dic = {"a_m_f": [], "b_m_f": [], "c_m_f": [], "c_m_b": [], "a_m_b": [], "b_m_b": []}
 
     def re_init(self, seed):
         np.random.seed(seed)
         self.seed = seed
-        self.y_m = np.asmatrix(np.random.dirichlet(np.ones(self.K), size=self.G)).T
-        self.theta_m = np.asmatrix(np.random.rand(self.K, self.E))
+        self.y_m = np.random.dirichlet(np.ones(self.K), size=self.G).T
+        self.theta_m = np.random.rand(self.K, self.E)
         self.theta_m_transpose = self.theta_m.T
-        self.lambda_m = np.asmatrix(np.eye(self.K))
+        self.lambda_m = np.eye(self.K)
         self.lambda_m_transpose = self.lambda_m.T
 
     def set_x(self, x):
@@ -99,17 +99,17 @@ class ssm(object):
         e_error = 0 # error comes from emission
         r_error = 0 # error comes from regularization
         while g < self.G:
-            e_error += np.sum((self.x_m[:, g] - self.theta_m_transpose * self.y_m[:, g]).T \
-                     * (self.x_m[:, g] - self.theta_m_transpose * self.y_m[:, g]))
-            r_error += np.sum(self.lambda_1_l2 * self.y_m[:, g].T * self.y_m[:, g]) # penalization
+            e_error += np.sum((self.x_m[:, g] - self.theta_m_transpose @ self.y_m[:, g]).T \
+                     @ (self.x_m[:, g] - self.theta_m_transpose @ self.y_m[:, g]))
+            r_error += np.sum(self.lambda_1_l2 * self.y_m[:, g].T @ self.y_m[:, g]) # penalization
           
             if g < self.G - 1:
-                t_error += np.sum((self.y_m[:, g + 1] - self.lambda_m * self.y_m[:, g]).T * (
-                        self.y_m[:, g + 1] - self.lambda_m * self.y_m[:, g]))
+                t_error += np.sum((self.y_m[:, g + 1] - self.lambda_m @ self.y_m[:, g]).T @ (
+                        self.y_m[:, g + 1] - self.lambda_m @ self.y_m[:, g]))
                
             g += 1
-        r_error += np.sum(self.lambda_2_l2*np.multiply(self.theta_m, self.theta_m))
-        r_error += np.sum(self.lambda_3_l2*np.multiply(self.lambda_m, self.lambda_m))
+        r_error += np.sum(self.lambda_2_l2 * np.multiply(self.theta_m, self.theta_m))
+        r_error += np.sum(self.lambda_3_l2 * np.multiply(self.lambda_m, self.lambda_m))
         return t_error, e_error, r_error
 
     def print_error(self):
@@ -122,12 +122,12 @@ class ssm(object):
         print("=================\n")
     
     def get_theta_msg(self):
-        lhs_m = np.asmatrix(np.zeros((self.K, self.K)))
-        rhs_m = np.asmatrix(np.zeros((self.K, self.E)))
+        lhs_m = np.zeros((self.K, self.K))
+        rhs_m = np.zeros((self.K, self.E))
         g = 0
         while g < self.G:
-            lhs_m += self.y_m[:, g] * self.y_m[:, g].T
-            rhs_m += self.y_m[:, g] * self.x_m[:, g].T
+            lhs_m += self.y_m[:, g].reshape(-1, 1) @ self.y_m[:, g].reshape(1, -1)
+            rhs_m += self.y_m[:, g].reshape(-1, 1) @ self.x_m[:, g].reshape(1, -1)
             g += 1
         lhs_m += self.lambda_2_l2 * np.eye(self.K)
         lhs_m = np.linalg.pinv(lhs_m)
@@ -136,14 +136,13 @@ class ssm(object):
         rhs_m -= J * self.lambda_2_l1 / 2
         return lhs_m, rhs_m
 
-    
     def get_lambda_msg(self):
-        lhs_m = np.asmatrix(np.zeros((self.K, self.K)))
-        rhs_m = np.asmatrix(np.zeros((self.K, self.K)))
+        lhs_m = np.zeros((self.K, self.K))
+        rhs_m = np.zeros((self.K, self.K))
         g = 0
         while g < self.G - 1:
-            lhs_m += self.y_m[:,g] * self.y_m[:,g].T
-            rhs_m += self.y_m[:,g] * self.y_m[:,g+1].T
+            lhs_m += self.y_m[:, g].reshape(-1, 1) @ self.y_m[:, g].reshape(1, -1)
+            rhs_m += self.y_m[:, g].reshape(-1, 1) @ self.y_m[:, g+1].reshape(1, -1)
             g += 1
         return lhs_m, rhs_m
 
@@ -151,27 +150,27 @@ class ssm(object):
         g = 0
         # initialize
         K_eye = np.eye(self.K)
-        a_m_initial = self.theta_m * self.theta_m_transpose + self.lambda_1_l2 * K_eye
+        a_m_initial = self.theta_m @ self.theta_m_transpose + self.lambda_1_l2 * K_eye
         a_m = a_m_initial
-        b_m = (-2 * self.x_m[:, g].T * self.theta_m_transpose).T
+        b_m = (-2 * self.x_m[:, g].T @ self.theta_m_transpose).reshape(-1, 1)
         self.message_dic["a_m_f"].append(a_m)
         self.message_dic["b_m_f"].append(b_m)
-        lambda_m_square = self.lambda_m_transpose * self.lambda_m
+        lambda_m_square = self.lambda_m_transpose @ self.lambda_m
         while g <= self.G - 2:
             # update
             g += 1
             b_m_transpose = b_m.T
-            g_m = (lambda_m_square + a_m.T).I
+            g_m = np.linalg.inv(lambda_m_square + a_m.T)
             g_m_transpose = g_m.T
-            expression_1 = g_m * self.lambda_m_transpose
-            expression_2 = K_eye - self.lambda_m * expression_1
-            expression_3 = g_m_transpose * a_m * expression_1
-            a_m_next = a_m_initial + (expression_2).T * (expression_2) \
-                       + self.lambda_m * expression_3
-            b_m_next = (b_m_transpose * g_m_transpose * self.lambda_m_transpose * (expression_2) \
-                        - b_m_transpose * expression_3 \
-                        + b_m_transpose * expression_1 \
-                        - 2 * self.x_m[:, g].T * self.theta_m_transpose).T
+            expression_1 = g_m @ self.lambda_m_transpose
+            expression_2 = K_eye - self.lambda_m @ expression_1
+            expression_3 = g_m_transpose @ a_m @ expression_1
+            a_m_next = a_m_initial + (expression_2).T @ (expression_2) \
+                       + self.lambda_m @ expression_3
+            b_m_next = (b_m_transpose @ g_m_transpose @ self.lambda_m_transpose @ expression_2 \
+                        - b_m_transpose @ expression_3 \
+                        + b_m_transpose @ expression_1 \
+                        - 2 * self.x_m[:, g].T @ self.theta_m_transpose).T
             a_m = a_m_next
             b_m = b_m_next
             self.message_dic["a_m_f"].append(a_m)
@@ -181,85 +180,86 @@ class ssm(object):
         g = self.G - 1
         # initialize
         K_eye = np.eye(self.K)
-        a_m_initial = self.theta_m * self.theta_m_transpose + self.lambda_1_l2 * K_eye
+        a_m_initial = self.theta_m @ self.theta_m_transpose + self.lambda_1_l2 * K_eye
         a_m = a_m_initial
-        b_m = (-2 * self.x_m[:, g].T * self.theta_m_transpose).T
+        b_m = (-2 * self.x_m[:, g].T @ self.theta_m_transpose).reshape(-1, 1)
         self.message_dic["a_m_b"].insert(0, a_m)
         self.message_dic["b_m_b"].insert(0, b_m)
         while g > 0:
             g -= 1
             b_m_transpose = b_m.T
-            g_m = (K_eye + a_m.T).I
+            #g_m = (K_eye + a_m.T).I
+            g_m = np.linalg.inv(K_eye + a_m.T)
             g_m_transpose = g_m.T
-            expression_1 = g_m * self.lambda_m
+            expression_1 = g_m @ self.lambda_m
             expression_2 = expression_1 - self.lambda_m
-            expression_3 = a_m * expression_1
-            expression_4 = b_m_transpose * g_m_transpose
-            a_m_next = a_m_initial + (expression_2).T * (expression_2) \
-                       + self.lambda_m_transpose * g_m_transpose * expression_3
-            b_m_next = (- 2 * self.x_m[:, g].T * self.theta_m_transpose \
-                        + b_m_transpose * expression_1 \
-                        - expression_4 * expression_3 \
-                        - expression_4 * (expression_2)).T
+            expression_3 = a_m @ expression_1
+            expression_4 = b_m_transpose @ g_m_transpose
+            a_m_next = a_m_initial + (expression_2).T @ (expression_2) \
+                       + self.lambda_m_transpose @ g_m_transpose @ expression_3
+            b_m_next = (- 2 * self.x_m[:, g].T @ self.theta_m_transpose \
+                        + b_m_transpose @ expression_1 \
+                        - expression_4 @ expression_3 \
+                        - expression_4 @ expression_2).T
             a_m = a_m_next
             b_m = b_m_next
             self.message_dic["a_m_b"].insert(0, a_m)
             self.message_dic["b_m_b"].insert(0, b_m)
     
     def update_y(self):
-        expression_1 = self.theta_m * self.theta_m_transpose + self.lambda_1_l2 * np.eye(self.K)
+        expression_1 = self.theta_m @ self.theta_m_transpose + self.lambda_1_l2 * np.eye(self.K)
         g = 0
         while g < self.G:
             a_m_f = self.message_dic["a_m_f"][g]
             b_m_f = self.message_dic["b_m_f"][g]
             a_m_b = self.message_dic["a_m_b"][g]
             b_m_b = self.message_dic["b_m_b"][g]
-            lhs_m = (-a_m_f - a_m_b + expression_1)
-            lhs_m_inverse = lhs_m.I
-            rhs_m = (1 / 2 * b_m_f + 1 / 2 * b_m_b + self.theta_m * self.x_m[:, g])
+            lhs_m = -a_m_f - a_m_b + expression_1
+            lhs_m_inverse = np.linalg.inv(lhs_m)
+            rhs_m = 1 / 2 * b_m_f + 1 / 2 * b_m_b + (self.theta_m @ self.x_m[:, g]).reshape(-1, 1)
             if self.sumone_state:
-                D = np.asmatrix(np.zeros((1, self.K)))
+                D = np.zeros((1, self.K))
                 D_transpose = D.T
-                d = np.asmatrix(np.zeros((1, 1)))
+                d = np.zeros((1, 1))
                 # sum one constraint
                 for k in range(self.K):
                     D[0, k] = 1
                 d[0, 0] = 1
-                expression_2 = D * lhs_m_inverse
-                lagrange_term = (expression_2 * D_transpose).I * (-d + expression_2 * rhs_m)
-                new_y_m = lhs_m_inverse * (-D_transpose * lagrange_term + rhs_m)
+                expression_2 = D @ lhs_m_inverse
+                lagrange_term = np.linalg.inv(expression_2 @ D_transpose) @ (-d + expression_2 @ rhs_m)
+                new_y_m = lhs_m_inverse @ (-D_transpose @ lagrange_term + rhs_m)
             else:
-                new_y_m = lhs_m_inverse * rhs_m
+                new_y_m = (lhs_m_inverse @ rhs_m).reshape(-1)
             if self.positive_state:
                 active_set = set()
-                for _ in range(self.K):    
+                for _ in range(self.K):
                     if not np.any(new_y_m < 0): # if all positive
                         break
-                    D = np.asmatrix(np.zeros((self.K, self.K)))
+                    D = np.zeros((self.K, self.K))
                     D_transpose = D.T
-                    d = np.asmatrix(np.zeros((self.K, 1)))
+                    d = np.zeros((self.K, 1))
                     for k in range(self.K):
-                        if new_y_m[k, 0] <= self.precision:
+                        if new_y_m[k] <= self.precision:
                             active_set.add(k)
                     for k in active_set:        
                         D[k, k] = 1
                         d[k, 0] = 0
-                    expression_2 = D * lhs_m_inverse
-                    lagrange_term = np.linalg.pinv(expression_2 * D_transpose) * (-d + expression_2 * rhs_m)
-                    new_y_m = lhs_m_inverse * (-D_transpose * lagrange_term + rhs_m)
+                    expression_2 = D @ lhs_m_inverse
+                    lagrange_term = np.linalg.pinv(expression_2 @ D_transpose) @ (-d + expression_2 @ rhs_m)
+                    new_y_m = lhs_m_inverse @ (-D_transpose @ lagrange_term + rhs_m)
                 if np.any(new_y_m < 0): # if any negative
                     pass
-                self.y_m[:, g] = new_y_m
+                self.y_m[:, g] = new_y_m.reshape(-1)
             else:
                 self.y_m[: ,g] = new_y_m
             g += 1
 
     def update_y_idv(self):
-        expression_1 = (self.theta_m * self.theta_m_transpose + self.lambda_m_transpose * self.lambda_m + (1 + self.lambda_1_l2) * np.eye(self.K)).I
-        self.y_m[:, 0] = expression_1 * (self.lambda_m_transpose * self.y_m[:, 1] + self.theta_m * self.x_m[:, 0]) # First position
+        expression_1 = np.linalg.inv(self.theta_m @ self.theta_m_transpose + self.lambda_m_transpose @ self.lambda_m + (1 + self.lambda_1_l2) * np.eye(self.K))
+        self.y_m[:, 0] = expression_1 @ (self.lambda_m_transpose @ self.y_m[:, 1] + self.theta_m @ self.x_m[:, 0]) # First position
         for g in range(1, self.G-1):
-            self.y_m[:, g] = expression_1 * (self.lambda_m * self.y_m[:, g - 1] + self.lambda_m_transpose * self.y_m[:,g + 1] + self.theta_m * self.x_m[:, g])
-        self.y_m[:, -1] = expression_1 * (self.lambda_m * self.y_m[:, -2] + self.theta_m * self.x_m[:, -1]) # Last position
+            self.y_m[:, g] = expression_1 @ (self.lambda_m @ self.y_m[:, g - 1] + self.lambda_m_transpose @ self.y_m[:,g + 1] + self.theta_m @ self.x_m[:, g])
+        self.y_m[:, -1] = expression_1 @ (self.lambda_m @ self.y_m[:, -2] + self.theta_m @ self.x_m[:, -1]) # Last position
     
     def update_theta(self, lhs_m, rhs_m):
         """
@@ -268,45 +268,45 @@ class ssm(object):
         """
         # FIXIME: fix the symbol
         self.z_m = self.theta_m_transpose.copy()
-        new_z_m = (lhs_m * rhs_m).T
+        new_z_m = (lhs_m @ rhs_m).T
         if self.positive_em:
-            new_z_m = np.asmatrix(np.zeros((self.K, self.E))).T
+            new_z_m = np.zeros((self.K, self.E)).T
             for p in range(self.E):
                 old_z = self.z_m[p, :].T
-                lag_lambda_m = np.asmatrix(np.zeros((1, self.K)))
+                lag_lambda_m = np.zeros((1, self.K))
                 # get active set
                 active = set()
                 for _ in range(self.K):
-                    new_z = lhs_m * (rhs_m[:,p] + 1/2*lag_lambda_m[0,:].T)
+                    new_z = lhs_m @ (rhs_m[:,p] + 1/2*lag_lambda_m[0,:].T)
                     v = new_z - old_z
                     min_k = 1
                     min_m = 0
                     found = False
                     for m in range(self.K):
-                        if new_z[m,0] < 0:
-                            if v[m, 0] < 0:
-                                k = old_z[m, 0] / (-v[m, 0])
+                        if new_z[m] < 0:
+                            if v[m] < 0:
+                                k = old_z[m] / (-v[m])
                                 if k < min_k:
                                     min_k = k
                                     min_m = m
                                     found = True
                     old_z += min_k*v
                     for m in range(self.K):
-                        if -self.precision <= old_z[m,0] <= self.precision:
-                            old_z[m,0] = 0                    
+                        if -self.precision <= old_z[m] <= self.precision:
+                            old_z[m] = 0
                     if found:
                         active.add(min_m)
                     # set lag term to 0
                     done = False
                     while not done:
-                        lag_lambda_m = np.asmatrix(np.zeros((1, self.K)))
+                        lag_lambda_m = np.zeros((1, self.K))
                         if len(active) > 0:
                             active_len = len(active)
-                            lag_lambda = np.asmatrix(np.zeros((1, active_len)))
-                            lag_lhs = np.asmatrix(np.zeros((active_len, active_len)))
-                            lag_lhs_bar = np.asmatrix(np.zeros((active_len, self.K - active_len)))
-                            lag_rhs = np.asmatrix(np.zeros((active_len, 1)))
-                            lag_rhs_bar = np.asmatrix(np.zeros((self.K - active_len, 1)))
+                            lag_lambda = np.zeros((1, active_len))
+                            lag_lhs = np.zeros((active_len, active_len))
+                            lag_lhs_bar = np.zeros((active_len, self.K - active_len))
+                            lag_rhs = np.zeros((active_len, 1))
+                            lag_rhs_bar = np.zeros((self.K - active_len, 1))
                             for r, val in enumerate(active):
                                 counter = 0
                                 bar_counter = 0
@@ -326,7 +326,7 @@ class ssm(object):
                                 else:
                                     lag_rhs_bar[bar_counter, 0] = rhs_m[c, p]
                                     bar_counter += 1
-                            lag_lambda = (-2 * np.linalg.pinv(lag_lhs) * lag_lhs_bar * lag_rhs_bar - 2 * lag_rhs).T
+                            lag_lambda = (-2 * np.linalg.pinv(lag_lhs) @ lag_lhs_bar @ lag_rhs_bar - 2 * lag_rhs).T
                             active_remove = set()
                             for c, val in enumerate(active):
                                 if lag_lambda[:, c] < 0:
@@ -342,12 +342,12 @@ class ssm(object):
                 if np.any(old_z < 0):
                     print("[Warning]: get negative z value")
                     print(old_z)
-                new_z_m[p, :] = old_z[:, 0].T
+                new_z_m[p, :] = old_z.T
         self.theta_m = new_z_m.T.copy()
         self.theta_m_transpose = self.theta_m.T
 
     def update_lambda(self, lhs_m, rhs_m):
-        self.lambda_m = np.asmatrix(np.linalg.lstsq(lhs_m + self.lambda_3_l2 * np.eye(self.K), rhs_m, rcond=1)[0]).T
+        self.lambda_m = np.linalg.lstsq(lhs_m + self.lambda_3_l2 * np.eye(self.K), rhs_m, rcond=1)[0].T
         self.lambda_m_transpose = self.lambda_m.T
 
     def update_state(self):
@@ -406,7 +406,7 @@ if __name__ == "__main__":
     ### run ssm
     model = ssm(seed=seed, E=E, G=G, K=K, 
                 lambda_1_l2=LAMBDA_1_L2, lambda_2_l1=LAMBDA_2_L1, lambda_2_l2=LAMBDA_2_L2, lambda_3_l2=LAMBDA_3_L2, 
-                positive_state=True, sumone_state=False, positive_em=True, message_passing=False,
+                positive_state=True, sumone_state=False, positive_em=True, message_passing=True,
                 n_threads=1, verbose=False)
     test_iteration = 10
     model.optimization(test_iteration)
@@ -414,6 +414,8 @@ if __name__ == "__main__":
     print("errSSM:\n", model.error_m)
     print("emSSM:\n", model.theta_m)
     print("trSSM:\n", model.lambda_m)
+    print(f"Number of negative values in y_m: {(model.y_m < 0).sum()}")
+    print(f"Number of negative values in theta_m: {(model.theta_m < 0).sum()}")
     ### plot
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator

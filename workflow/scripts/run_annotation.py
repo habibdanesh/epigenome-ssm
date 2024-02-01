@@ -32,8 +32,8 @@ lambda_1_l2 = model_params["lambda_1_l2"]
 lambda_2_l1 = model_params["lambda_2_l1"]
 lambda_2_l2 = model_params["lambda_2_l2"]
 lambda_3_l2 = model_params["lambda_3_l2"]
-theta_m = np.asmatrix(model_params["theta_m"])
-lambda_m = np.asmatrix(model_params["lambda_m"])
+theta_m = np.array(model_params["theta_m"])
+lambda_m = np.array(model_params["lambda_m"])
 epigenomes = model_params["epigenomes"]
 assays = model_params["assays"]
 model_params = None
@@ -79,6 +79,7 @@ if model_type == "concatenated":
         rows.append(np.hstack(([npz_obj["arr_0"][bin_start:bin_end] for npz_obj in col_npz_objects])))
     X_df = np.vstack(([row for row in rows]))
 ##
+X_df = np.asarray(X_df)
 print("X_df: {}".format(X_df.shape)) # shape is E x n_bins
 num_tracks = X_df.shape[0]
 num_positions = X_df.shape[1]
@@ -89,7 +90,7 @@ model = ssm.ssm(E=num_tracks, G=num_positions, K=K, \
             lambda_1_l2=lambda_1_l2, lambda_2_l1=lambda_2_l1, lambda_2_l2=lambda_2_l2, lambda_3_l2=lambda_3_l2, \
             positive_state=nonneg_state, sumone_state=sumone_state, positive_em=nonneg_em, message_passing=message_passing, \
             verbose=False)
-model.set_x(np.asmatrix(X_df))
+model.set_x(X_df)
 model.set_theta(theta_m)
 model.set_lambda(lambda_m)
 model.update_state()
