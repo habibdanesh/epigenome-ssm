@@ -1,5 +1,6 @@
 import os
 import json
+import math
 import numpy as np
 
 ### config parameters
@@ -8,6 +9,7 @@ in_dir = config["in_dir"]
 out_dir = config["out_dir"]
 debug = config["debug"]
 existing_model = config["model"]
+n_chunks = config["n_chunks"] # Number of chunks to divide the genome into
 
 ### paths
 scripts_dir = root_path + "/workflow/scripts"
@@ -34,7 +36,12 @@ with open(n_bins_file, 'r') as n_bins_f:
     lines = n_bins_f.readlines()
 for line in lines:
     n_bins_list.append(int(line.strip("\n").split("\t")[-1]))
-chunk_npz_files = expand("{d}/chunk_{chunk_idx}.npz", d=features_dir, chunk_idx=[i for i in range(len(n_bins_list))])
+total_bins = sum(n_bins_list)
+chunk_npz_files = expand("{d}/chunk_{chunk_idx}.npz", d=features_dir, chunk_idx=[i for i in range(n_chunks)])
+max_bins = math.ceil(total_bins / n_chunks) # Max. number of bins per chunk
+print(f"### total_bins: {total_bins}")
+print(f"### n_chunks: {n_chunks}")
+print(f"### max_bins: {max_bins}")
 ##
 in_files_locator = in_dir + "/file_locator.tsv"
 tracks = []
@@ -62,14 +69,16 @@ rule all:
 rule run_annotation:
     input:
         in_files_locator = in_files_locator,
-        n_bins_file = n_bins_file,
         model_json = model_json
+    params:
+        total_bins = total_bins,
+        max_bins = max_bins
     output:
         chunk_npz_file = features_dir + "/chunk_{chunk_idx}.npz"
     threads:
-        8
+        2
     resources:
-        mem_mb = 8000
+        mem_mb = 4000
     script:
         scripts_dir + "/run_annotation.py"
 

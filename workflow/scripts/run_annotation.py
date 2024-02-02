@@ -1,15 +1,16 @@
 import json
+import psutil
 import numpy as np
 import ssm
 
 ### parameters
 in_files_locator = snakemake.input.in_files_locator
-n_bins_file = snakemake.input.n_bins_file
 model_json = snakemake.input.model_json
+total_bins = snakemake.params.total_bins
+max_bins = snakemake.params.max_bins
 chunk_npz_file = snakemake.output.chunk_npz_file
 
 def print_mem_usage():
-    import psutil
     print("RAM Used (GB): {}\n".format(psutil.Process().memory_info().rss / (1024 * 1024 * 1024)))
 
 ### track input files
@@ -40,13 +41,12 @@ model_params = None
 
 ### get the region info
 chunk_idx = int(chunk_npz_file[:-len(".npz")].split('_')[-1])
-with open(n_bins_file, 'r') as n_bins_f:
-    lines = n_bins_f.readlines()
-bin_start = 0
-bin_end = int(lines[0].strip("\n").split("\t")[-1])
-for i in range(1, chunk_idx+1):
-    bin_start = bin_end
-    bin_end += int(lines[i].strip("\n").split("\t")[-1])
+bin_start = chunk_idx * max_bins
+bin_end = (chunk_idx+1) * max_bins
+if bin_end > total_bins:
+    bin_end = total_bins
+print(f"### chunk {chunk_idx},  bin {bin_start}:{bin_end}")
+
 print_mem_usage()
 ### read input data
 X_df = np.matrix([], dtype=np.single)
