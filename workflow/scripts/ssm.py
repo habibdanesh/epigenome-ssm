@@ -1,5 +1,3 @@
-import os
-import sys
 import copy
 import time
 import numpy as np
@@ -35,10 +33,11 @@ class ssm(object):
         self.message_passing = message_passing
         self.n_threads = n_threads
         self.verbose = verbose
-        self.precision = sys.float_info.epsilon
+        self.precision = np.finfo(np.single).eps # 1.1920929e-07
         
         self.x_m = np.random.rand(self.E, self.G).astype(np.single)
-        self.y_m = np.random.dirichlet(np.ones(self.K), size=self.G).astype(np.single).T
+        #self.y_m = np.random.dirichlet(np.ones(self.K), size=self.G).astype(np.single).T
+        self.y_m = np.zeros((self.K, self.G)).astype(np.single)
         self.theta_m = np.random.rand(self.K, self.E).astype(np.single)
         self.theta_m_transpose = self.theta_m.T
         self.lambda_m = np.eye(self.K).astype(np.single)
@@ -230,25 +229,23 @@ class ssm(object):
                 new_y_m = lhs_m_inverse @ (-D_transpose @ lagrange_term + rhs_m)
             else:
                 new_y_m = (lhs_m_inverse @ rhs_m).reshape(-1)
-            if self.positive_state:
+            if self.positive_state and np.any(new_y_m < 0):
                 active_set = set()
-                for _ in range(self.K):
-                    if not np.any(new_y_m < 0): # if all positive
-                        break
-                    D = np.zeros((self.K, self.K)).astype(np.single)
-                    D_transpose = D.T
-                    d = np.zeros((self.K, 1)).astype(np.single)
-                    for k in range(self.K):
-                        if new_y_m[k] <= self.precision:
-                            active_set.add(k)
-                    for k in active_set:        
-                        D[k, k] = 1
-                        d[k, 0] = 0
-                    expression_2 = D @ lhs_m_inverse
-                    lagrange_term = np.linalg.pinv(expression_2 @ D_transpose) @ (-d + expression_2 @ rhs_m)
-                    new_y_m = lhs_m_inverse @ (-D_transpose @ lagrange_term + rhs_m)
+                D = np.zeros((self.K, self.K)).astype(np.single)
+                D_transpose = D.T
+                d = np.zeros((self.K, 1)).astype(np.single)
+                for k in range(self.K):
+                    if new_y_m[k] <= self.precision:
+                        active_set.add(k)
+                for k in active_set:        
+                    D[k, k] = 1
+                    d[k, 0] = 0
+                expression_2 = D @ lhs_m_inverse
+                lagrange_term = np.linalg.pinv(expression_2 @ D_transpose) @ (-d + expression_2 @ rhs_m)
+                new_y_m = lhs_m_inverse @ (-D_transpose @ lagrange_term + rhs_m)
                 if np.any(new_y_m < 0): # if any negative
-                    pass
+                    g += 1
+                    continue
                 self.y_m[:, g] = new_y_m.reshape(-1)
             else:
                 self.y_m[:, g] = new_y_m
@@ -412,9 +409,9 @@ if __name__ == "__main__":
     test_iteration = 10
     model.optimization(test_iteration)
     model.print_error()
-    print("errSSM:\n", model.error_m)
-    print("emSSM:\n", model.theta_m)
-    print("trSSM:\n", model.lambda_m)
+    #print("errSSM:\n", model.error_m)
+    #print("emSSM:\n", model.theta_m)
+    #print("trSSM:\n", model.lambda_m)
     print(f"Number of negative values in y_m: {(model.y_m < 0).sum()}")
     print(f"Number of negative values in theta_m: {(model.theta_m < 0).sum()}")
     ### plot
