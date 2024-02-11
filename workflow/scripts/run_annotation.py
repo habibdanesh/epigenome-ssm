@@ -2,13 +2,14 @@ import json
 import psutil
 import numpy as np
 import ssm
+import time
 
 ### parameters
 in_files_locator = snakemake.input.in_files_locator
 model_json = snakemake.input.model_json
 total_bins = snakemake.params.total_bins
 max_bins = snakemake.params.max_bins
-chunk_npz_file = snakemake.output.chunk_npz_file
+chunk_out_npy = snakemake.output.chunk_out_npy
 
 def print_mem_usage():
     print("RAM Used (GB): {}\n".format(psutil.Process().memory_info().rss / (1024 * 1024 * 1024)))
@@ -33,39 +34,35 @@ lambda_1_l2 = model_params["lambda_1_l2"]
 lambda_2_l1 = model_params["lambda_2_l1"]
 lambda_2_l2 = model_params["lambda_2_l2"]
 lambda_3_l2 = model_params["lambda_3_l2"]
-theta_m = np.array(model_params["theta_m"])
-lambda_m = np.array(model_params["lambda_m"])
+theta_m = np.array(model_params["theta_m"], dtype=np.single)
+lambda_m = np.array(model_params["lambda_m"], dtype=np.single)
 epigenomes = model_params["epigenomes"]
 assays = model_params["assays"]
 model_params = None
 
 ### get the region info
-chunk_idx = int(chunk_npz_file[:-len(".npz")].split('_')[-1])
+chunk_idx = int(chunk_out_npy[:-len(".npy")].split('_')[-1])
 bin_start = chunk_idx * max_bins
 bin_end = (chunk_idx+1) * max_bins
 if bin_end > total_bins:
     bin_end = total_bins
+chunk_nbins = bin_end - bin_start
 print(f"### chunk {chunk_idx},  bin {bin_start}:{bin_end}")
 
 print_mem_usage()
 ### read input data
-X_df = np.matrix([], dtype=np.single)
+X = np.empty((E, chunk_nbins), dtype=np.single)
 ## stacked model
 if model_type == "stacked":
-    npz_objects = []
-    for in_f in in_files:
-        npz_objects.append(np.load(in_f, mmap_mode='r'))
-        npz_obj = np.load(in_f, mmap_mode='r')
-        X_df = np.vstack([X_df, npz_obj["arr_0"][bin_start:bin_end]]) \
-                            if X_df.size else npz_obj["arr_0"][bin_start:bin_end]
-        #print("X_df size (MB): {}".format(X_df.size * X_df.itemsize / (1024 * 1024)))
-        #print_mem_usage()
-    print_mem_usage()
+    for idx, in_f in enumerate(in_files):
+        start_time = time.time()
+        X[idx, :] = np.load(in_f, mmap_mode='r')[bin_start:bin_end]
+
 ## concatenated model
 if model_type == "concatenated":
     rows = []
     for assay in assays:
-        col_npz_objects = []
+        col_npy_objects = []
         for epigenome in epigenomes:
             track = "{}_{}".format(epigenome, assay)
             # find track input file
@@ -75,26 +72,26 @@ if model_type == "concatenated":
                     track_in_file = in_f
                     break
             assert track_in_file != None
-            col_npz_objects.append(np.load(track_in_file, mmap_mode='r'))
-        rows.append(np.hstack(([npz_obj["arr_0"][bin_start:bin_end] for npz_obj in col_npz_objects])))
-    X_df = np.vstack(([row for row in rows]))
+            col_npy_objects.append(np.load(track_in_file, mmap_mode='r'))
+        rows.append(np.hstack(([npy_obj[bin_start:bin_end] for npy_obj in col_npy_objects])))
+    X = np.vstack(([row for row in rows]))
 ##
-X_df = np.asarray(X_df)
-print("X_df: {}".format(X_df.shape)) # shape is E x n_bins
-num_tracks = X_df.shape[0]
-num_positions = X_df.shape[1]
+print("X: {}".format(X.shape)) # shape is E x n_bins
+num_tracks = X.shape[0]
+num_positions = X.shape[1]
+
 ### data normalization
-X_df = np.arcsinh(X_df)
+X = np.arcsinh(X)
 ### run ssm annotation
 model = ssm.ssm(E=num_tracks, G=num_positions, K=K, \
             lambda_1_l2=lambda_1_l2, lambda_2_l1=lambda_2_l1, lambda_2_l2=lambda_2_l2, lambda_3_l2=lambda_3_l2, \
             positive_state=nonneg_state, sumone_state=sumone_state, positive_em=nonneg_em, message_passing=message_passing, \
             verbose=False)
-model.set_x(X_df)
+model.set_x(X)
 model.set_theta(theta_m)
 model.set_lambda(lambda_m)
 model.update_state()
 print("y_m: {}\n".format(model.y_m.shape)) # shape is K x n_bins
 
 ### save the feature tracks
-np.savez_compressed(chunk_npz_file, model.y_m)
+np.save(chunk_out_npy, model.y_m)

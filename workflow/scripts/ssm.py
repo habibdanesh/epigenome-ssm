@@ -37,11 +37,11 @@ class ssm(object):
         self.verbose = verbose
         self.precision = sys.float_info.epsilon
         
-        self.x_m = np.random.rand(self.E, self.G)
-        self.y_m = np.random.dirichlet(np.ones(self.K), size=self.G).T
-        self.theta_m = np.random.rand(self.K, self.E)
+        self.x_m = np.random.rand(self.E, self.G).astype(np.single)
+        self.y_m = np.random.dirichlet(np.ones(self.K), size=self.G).astype(np.single).T
+        self.theta_m = np.random.rand(self.K, self.E).astype(np.single)
         self.theta_m_transpose = self.theta_m.T
-        self.lambda_m = np.eye(self.K)
+        self.lambda_m = np.eye(self.K).astype(np.single)
         self.lambda_m_transpose = self.lambda_m.T
         self.error_m = []
         self.improve_m = [] # percentage of error improvement with respect to the previous iteration
@@ -49,45 +49,45 @@ class ssm(object):
         self.message_dic = {"a_m_f": [], "b_m_f": [], "c_m_f": [], "c_m_b": [], "a_m_b": [], "b_m_b": []}
         
     def initialize(self):
-        self.y_m = np.random.dirichlet(np.ones(self.K), size=self.G).T
+        self.y_m = np.random.dirichlet(np.ones(self.K), size=self.G).astype(np.single).T
         g = 0
         while g < self.G:
             self.x_m[:, g] = (
-                np.random.multivariate_normal((self.theta_m_transpose * self.y_m[:, g]).flatten().tolist()[0], np.eye(self.E))).T
+                np.random.multivariate_normal((self.theta_m_transpose * self.y_m[:, g]).flatten().tolist()[0], np.eye(self.E))).astype(np.single).T
             g += 1
         self.message_dic = {"a_m_f": [], "b_m_f": [], "c_m_f": [], "c_m_b": [], "a_m_b": [], "b_m_b": []}
 
     def re_init(self, seed):
         np.random.seed(seed)
         self.seed = seed
-        self.y_m = np.random.dirichlet(np.ones(self.K), size=self.G).T
-        self.theta_m = np.random.rand(self.K, self.E)
+        self.y_m = np.random.dirichlet(np.ones(self.K), size=self.G).astype(np.single).T
+        self.theta_m = np.random.rand(self.K, self.E).astype(np.single)
         self.theta_m_transpose = self.theta_m.T
-        self.lambda_m = np.eye(self.K)
+        self.lambda_m = np.eye(self.K).astype(np.single)
         self.lambda_m_transpose = self.lambda_m.T
 
     def set_x(self, x):
-        self.x_m = x
+        self.x_m = x.astype(np.single)
 
     def set_y(self, y):
-        self.y_m = y
+        self.y_m = y.astype(np.single)
 
     def set_theta(self, theta_m):
-        self.theta_m = copy.deepcopy(theta_m)
+        self.theta_m = copy.deepcopy(theta_m).astype(np.single)
         self.theta_m_transpose = self.theta_m.T
 
     def set_lambda(self, lambda_m):
-        self.lambda_m = copy.deepcopy(lambda_m)
+        self.lambda_m = copy.deepcopy(lambda_m).astype(np.single)
         self.lambda_m_transpose = self.lambda_m.T
 
     def set_error_m(self, error_m):
-        self.error_m = copy.deepcopy(error_m)
+        self.error_m = copy.deepcopy(error_m).astype(np.single)
 
     def set_improve_m(self, improve_m):
-        self.improve_m = copy.deepcopy(improve_m)
+        self.improve_m = copy.deepcopy(improve_m).astype(np.single)
 
     def set_opt_time(self, opt_time_m):
-        self.opt_time_m = copy.deepcopy(opt_time_m)
+        self.opt_time_m = copy.deepcopy(opt_time_m).astype(np.single)
 
     def total_error(self):
         t_error, e_error, r_error = self.get_error()
@@ -122,8 +122,8 @@ class ssm(object):
         print("=================\n")
     
     def get_theta_msg(self):
-        lhs_m = np.zeros((self.K, self.K))
-        rhs_m = np.zeros((self.K, self.E))
+        lhs_m = np.zeros((self.K, self.K)).astype(np.single)
+        rhs_m = np.zeros((self.K, self.E)).astype(np.single)
         g = 0
         while g < self.G:
             lhs_m += self.y_m[:, g].reshape(-1, 1) @ self.y_m[:, g].reshape(1, -1)
@@ -137,8 +137,8 @@ class ssm(object):
         return lhs_m, rhs_m
 
     def get_lambda_msg(self):
-        lhs_m = np.zeros((self.K, self.K))
-        rhs_m = np.zeros((self.K, self.K))
+        lhs_m = np.zeros((self.K, self.K)).astype(np.single)
+        rhs_m = np.zeros((self.K, self.K)).astype(np.single)
         g = 0
         while g < self.G - 1:
             lhs_m += self.y_m[:, g].reshape(-1, 1) @ self.y_m[:, g].reshape(1, -1)
@@ -149,7 +149,7 @@ class ssm(object):
     def forward(self):
         g = 0
         # initialize
-        K_eye = np.eye(self.K)
+        K_eye = np.eye(self.K).astype(np.single)
         a_m_initial = self.theta_m @ self.theta_m_transpose + self.lambda_1_l2 * K_eye
         a_m = a_m_initial
         b_m = (-2 * self.x_m[:, g].T @ self.theta_m_transpose).reshape(-1, 1)
@@ -179,7 +179,7 @@ class ssm(object):
     def backward(self):
         g = self.G - 1
         # initialize
-        K_eye = np.eye(self.K)
+        K_eye = np.eye(self.K).astype(np.single)
         a_m_initial = self.theta_m @ self.theta_m_transpose + self.lambda_1_l2 * K_eye
         a_m = a_m_initial
         b_m = (-2 * self.x_m[:, g].T @ self.theta_m_transpose).reshape(-1, 1)
@@ -207,7 +207,7 @@ class ssm(object):
             self.message_dic["b_m_b"].insert(0, b_m)
     
     def update_y(self):
-        expression_1 = self.theta_m @ self.theta_m_transpose + self.lambda_1_l2 * np.eye(self.K)
+        expression_1 = (self.theta_m @ self.theta_m_transpose + self.lambda_1_l2 * np.eye(self.K)).astype(np.single)
         g = 0
         while g < self.G:
             a_m_f = self.message_dic["a_m_f"][g]
@@ -218,9 +218,9 @@ class ssm(object):
             lhs_m_inverse = np.linalg.inv(lhs_m)
             rhs_m = 1 / 2 * b_m_f + 1 / 2 * b_m_b + (self.theta_m @ self.x_m[:, g]).reshape(-1, 1)
             if self.sumone_state:
-                D = np.zeros((1, self.K))
+                D = np.zeros((1, self.K)).astype(np.single)
                 D_transpose = D.T
-                d = np.zeros((1, 1))
+                d = np.zeros((1, 1)).astype(np.single)
                 # sum one constraint
                 for k in range(self.K):
                     D[0, k] = 1
@@ -235,9 +235,9 @@ class ssm(object):
                 for _ in range(self.K):
                     if not np.any(new_y_m < 0): # if all positive
                         break
-                    D = np.zeros((self.K, self.K))
+                    D = np.zeros((self.K, self.K)).astype(np.single)
                     D_transpose = D.T
-                    d = np.zeros((self.K, 1))
+                    d = np.zeros((self.K, 1)).astype(np.single)
                     for k in range(self.K):
                         if new_y_m[k] <= self.precision:
                             active_set.add(k)
@@ -251,11 +251,12 @@ class ssm(object):
                     pass
                 self.y_m[:, g] = new_y_m.reshape(-1)
             else:
-                self.y_m[: ,g] = new_y_m
+                self.y_m[:, g] = new_y_m
             g += 1
 
     def update_y_idv(self):
-        expression_1 = np.linalg.inv(self.theta_m @ self.theta_m_transpose + self.lambda_m_transpose @ self.lambda_m + (1 + self.lambda_1_l2) * np.eye(self.K))
+        expression_1 = np.linalg.inv(self.theta_m @ self.theta_m_transpose + self.lambda_m_transpose @ self.lambda_m + \
+                                     (1 + self.lambda_1_l2) * np.eye(self.K)).astype(np.single)
         self.y_m[:, 0] = expression_1 @ (self.lambda_m_transpose @ self.y_m[:, 1] + self.theta_m @ self.x_m[:, 0]) # First position
         for g in range(1, self.G-1):
             self.y_m[:, g] = expression_1 @ (self.lambda_m @ self.y_m[:, g - 1] + self.lambda_m_transpose @ self.y_m[:,g + 1] + self.theta_m @ self.x_m[:, g])
@@ -270,10 +271,10 @@ class ssm(object):
         self.z_m = self.theta_m_transpose.copy()
         new_z_m = (lhs_m @ rhs_m).T
         if self.positive_em:
-            new_z_m = np.zeros((self.K, self.E)).T
+            new_z_m = np.zeros((self.K, self.E)).astype(np.single).T
             for p in range(self.E):
                 old_z = self.z_m[p, :].T
-                lag_lambda_m = np.zeros((1, self.K))
+                lag_lambda_m = np.zeros((1, self.K)).astype(np.single)
                 # get active set
                 active = set()
                 for _ in range(self.K):
@@ -299,14 +300,14 @@ class ssm(object):
                     # set lag term to 0
                     done = False
                     while not done:
-                        lag_lambda_m = np.zeros((1, self.K))
+                        lag_lambda_m = np.zeros((1, self.K)).astype(np.single)
                         if len(active) > 0:
                             active_len = len(active)
-                            lag_lambda = np.zeros((1, active_len))
-                            lag_lhs = np.zeros((active_len, active_len))
-                            lag_lhs_bar = np.zeros((active_len, self.K - active_len))
-                            lag_rhs = np.zeros((active_len, 1))
-                            lag_rhs_bar = np.zeros((self.K - active_len, 1))
+                            lag_lambda = np.zeros((1, active_len)).astype(np.single)
+                            lag_lhs = np.zeros((active_len, active_len)).astype(np.single)
+                            lag_lhs_bar = np.zeros((active_len, self.K - active_len)).astype(np.single)
+                            lag_rhs = np.zeros((active_len, 1)).astype(np.single)
+                            lag_rhs_bar = np.zeros((self.K - active_len, 1)).astype(np.single)
                             for r, val in enumerate(active):
                                 counter = 0
                                 bar_counter = 0
@@ -347,7 +348,7 @@ class ssm(object):
         self.theta_m_transpose = self.theta_m.T
 
     def update_lambda(self, lhs_m, rhs_m):
-        self.lambda_m = np.linalg.lstsq(lhs_m + self.lambda_3_l2 * np.eye(self.K), rhs_m, rcond=1)[0].T
+        self.lambda_m = np.linalg.lstsq(lhs_m + self.lambda_3_l2 * np.eye(self.K), rhs_m, rcond=1)[0].astype(np.single).T
         self.lambda_m_transpose = self.lambda_m.T
 
     def update_state(self):
@@ -397,7 +398,7 @@ class ssm(object):
 if __name__ == "__main__":
     seed = 0
     E = 30
-    G = 10000
+    G = 1000
     K = 5
     LAMBDA_1_L2 = .1
     LAMBDA_2_L1 = .0
