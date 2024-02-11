@@ -28,16 +28,13 @@ with open(model_json, 'r') as model_f:
     n_features = model_params['K']
 
 ### track and file names
-bin_regions_file = in_dir + "/regions.bed"
-##
 n_bins_file = in_dir + "/regions_n_bins.bg"
-n_bins_list = []
 with open(n_bins_file, 'r') as n_bins_f:
     lines = n_bins_f.readlines()
+total_bins = 0
 for line in lines:
-    n_bins_list.append(int(line.strip("\n").split("\t")[-1]))
-total_bins = sum(n_bins_list)
-chunk_npz_files = expand("{d}/chunk_{chunk_idx}.npz", d=features_dir, chunk_idx=[i for i in range(n_chunks)])
+    total_bins += int(line.strip("\n").split("\t")[-1])
+chunk_out_npy = expand("{d}/chunk_{chunk_idx}.npy", d=features_dir, chunk_idx=[i for i in range(n_chunks)])
 max_bins = math.ceil(total_bins / n_chunks) # Max. number of bins per chunk
 print(f"### total_bins: {total_bins}")
 print(f"### n_chunks: {n_chunks}")
@@ -55,15 +52,15 @@ with open(in_files_locator, 'r') as in_f_locator:
         track = "{}_{}".format(epigenome, assay)
         tracks.append(track)
         track_in_files.append(path)
-feature_npz_files = ["{}/f{}.npz".format(features_dir, f) for f in range(1, n_features+1)]
-feature_bw_files = ["{}/f{}.bigwig.gz".format(features_dir, f) for f in range(1, n_features+1)]
+feature_npy_files = ["{}/f{}.npy".format(features_dir, f) for f in range(1, n_features+1)]
+feature_bw_files = ["{}/f{}.bw".format(features_dir, f) for f in range(1, n_features+1)] # FIXME
 
 
 ### rules
 rule all:
     input:
         ## combine_chunk_annotations
-        feature_npz_files
+        feature_npy_files
 
 
 rule run_annotation:
@@ -74,33 +71,33 @@ rule run_annotation:
         total_bins = total_bins,
         max_bins = max_bins
     output:
-        chunk_npz_file = features_dir + "/chunk_{chunk_idx}.npz"
+        chunk_out_npy = features_dir + "/chunk_{chunk_idx}.npy"
     threads:
         2
     resources:
-        mem_mb = 4000
+        mem_mb = 2048
     script:
         scripts_dir + "/run_annotation.py"
 
 
 rule combine_chunk_annotations:
     input:
-        chunk_npz_files = chunk_npz_files
+        chunk_out_npy = chunk_out_npy
     output:
-        feature_npz_files = feature_npz_files
+        feature_npy_files = feature_npy_files
     threads:
         workflow.cores
     run:
-        feature_mat = np.matrix([], dtype=np.single)
-        for i, chunk_npz_file in enumerate(input.chunk_npz_files):
-            chunk_idx = int(chunk_npz_file[:-len(".npz")].split('_')[-1])
+        feature_arr = np.empty((n_features, 0), dtype=np.single)
+        for i, chunk_npy_file in enumerate(input.chunk_out_npy):
+            chunk_idx = int(chunk_npy_file[:-len(".npy")].split('_')[-1])
             assert i == chunk_idx
-            chunk_mat = np.load(chunk_npz_file)["arr_0"]
-            feature_mat = np.hstack([feature_mat, chunk_mat]) if feature_mat.size else chunk_mat
-        print("\nfeature_mat: {}\n".format(feature_mat.shape)) # shape is K x G
+            chunk_arr = np.load(chunk_npy_file)
+            feature_arr = np.concatenate((feature_arr, np.load(chunk_npy_file)), axis=1)
+        print("\nfeature_arr: {}\n".format(feature_arr.shape)) # shape is K x G
         ### save
         for k in range(n_features):
-            np.savez_compressed(output.feature_npz_files[k], feature_mat[k, :])
+            np.save(output.feature_npy_files[k], feature_arr[k, :])
         ### clean up
-        for chunk_npz_file in input.chunk_npz_files:
-            os.remove(chunk_npz_file)
+        for chunk_npy_file in input.chunk_out_npy:
+            os.remove(chunk_npy_file)
