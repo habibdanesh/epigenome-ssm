@@ -7,6 +7,7 @@ class ssm(object):
                 E=5, G=100, K=3, 
                 lambda_1_l2=0.1, lambda_2_l1=0., lambda_2_l2=0.1, lambda_3_l2=0.1, 
                 positive_state=True, sumone_state=False, positive_em=True, message_passing=True, 
+                X=None, Y=None,
                 n_threads=1, verbose=False):
         """
         :param E: # assay 
@@ -35,9 +36,17 @@ class ssm(object):
         self.verbose = verbose
         self.precision = np.finfo(np.single).eps # 1.1920929e-07
         
-        self.x_m = np.random.rand(self.E, self.G).astype(np.single)
-        #self.y_m = np.random.dirichlet(np.ones(self.K), size=self.G).astype(np.single).T
-        self.y_m = np.zeros((self.K, self.G)).astype(np.single)
+        if X is None:
+            self.x_m = np.random.rand(self.E, self.G).astype(np.single)
+        else:
+            self.x_m = X.astype(np.single)
+
+        if Y is None:
+            #self.y_m = np.zeros((self.K, self.G)).astype(np.single)
+            self.y_m = np.random.dirichlet(np.ones(self.K), size=self.G).astype(np.single).T
+        else:
+            self.y_m = Y.astype(np.single)
+            
         self.theta_m = np.random.rand(self.K, self.E).astype(np.single)
         self.theta_m_transpose = self.theta_m.T
         self.lambda_m = np.eye(self.K).astype(np.single)
@@ -243,9 +252,9 @@ class ssm(object):
                 expression_2 = D @ lhs_m_inverse
                 lagrange_term = np.linalg.pinv(expression_2 @ D_transpose) @ (-d + expression_2 @ rhs_m)
                 new_y_m = lhs_m_inverse @ (-D_transpose @ lagrange_term + rhs_m)
-                if np.any(new_y_m < 0): # if any negative
-                    g += 1
-                    continue
+                #if np.any(new_y_m < 0): # if any negative
+                #    g += 1
+                #    continue
                 self.y_m[:, g] = new_y_m.reshape(-1)
             else:
                 self.y_m[:, g] = new_y_m
@@ -391,6 +400,7 @@ class ssm(object):
             self.improve_m.append((self.error_m[-2] - self.error_m[-1]) / self.error_m[-2])
             self.opt_time_m.append(time.time() - self.start_time)
             i += 1
+            print(f"Finished itr {i}")
 
 if __name__ == "__main__":
     seed = 0

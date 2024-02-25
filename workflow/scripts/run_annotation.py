@@ -2,7 +2,6 @@ import json
 import psutil
 import numpy as np
 import ssm
-import time
 
 ### parameters
 in_files_locator = snakemake.input.in_files_locator
@@ -55,7 +54,6 @@ X = np.empty((E, chunk_nbins), dtype=np.single)
 ## stacked model
 if model_type == "stacked":
     for idx, in_f in enumerate(in_files):
-        start_time = time.time()
         X[idx, :] = np.load(in_f, mmap_mode='r')[bin_start:bin_end]
 
 ## concatenated model
@@ -86,8 +84,7 @@ X = np.arcsinh(X)
 model = ssm.ssm(E=num_tracks, G=num_positions, K=K, \
             lambda_1_l2=lambda_1_l2, lambda_2_l1=lambda_2_l1, lambda_2_l2=lambda_2_l2, lambda_3_l2=lambda_3_l2, \
             positive_state=nonneg_state, sumone_state=sumone_state, positive_em=nonneg_em, message_passing=message_passing, \
-            verbose=False)
-model.set_x(X)
+            X=X, verbose=False)
 model.set_theta(theta_m)
 model.set_lambda(lambda_m)
 model.update_state()

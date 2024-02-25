@@ -7,6 +7,7 @@ model_type = config["model_type"]
 n_features = config["n_features"]
 out_dir = config["out_dir"]
 existing_model = config["model"]
+x_array = config["x_array"]
 debug = config["debug"]
 
 ### paths
@@ -32,6 +33,8 @@ with open(in_files_locator, 'r') as in_f_locator:
         track = "{}_{}".format(epigenome, assay)
         tracks.append(track)
         track_in_files.append(path)
+if os.path.isfile(x_array):
+    track_in_files = [x_array]
 model_json = training_dir + "/model.json"
 
 
@@ -58,7 +61,8 @@ rule run_training:
         n_rand_init = 10,
         max_iter = 50,
         min_improvement = 0.001,
-        existing_model = existing_model
+        existing_model = existing_model,
+        x_array = x_array
     output:
         model_json = model_json
     threads:

@@ -18,6 +18,7 @@ n_rand_init = snakemake.params.n_rand_init
 max_iter = snakemake.params.max_iter
 min_improvement = snakemake.params.min_improvement
 existing_model = snakemake.params.existing_model
+x_array = snakemake.params.x_array
 model_json = snakemake.output.model_json
 
 def save_model(itr):
@@ -30,7 +31,7 @@ def save_model(itr):
         "nonneg_state": True,
         "sumone_state": False,
         "nonneg_em": True,
-        "message_passing": False,
+        "message_passing": True,
         "lambda_1_l2": lambda_1_l2,
         "lambda_2_l1": lambda_2_l1,
         "lambda_2_l2": lambda_2_l2,
@@ -49,44 +50,46 @@ def save_model(itr):
         json.dump(model_params, out_file, indent=4)
 
 ### read input data
-## stacked model
-if model_type == "stacked":
-    npz_objects = []
-    for in_f in in_files:
-        npz_objects.append(np.load(in_f))
-    X_df = np.vstack(([npz_obj["arr_0"] for npz_obj in npz_objects]))
-## concatenated model
-if model_type == "concatenated":
-    rows = []
-    for assay in assays:
-        col_npz_objects = []
-        for epigenome in epigenomes:
-            track = "{}_{}".format(epigenome, assay)
-            # find track input file
-            track_in_file = None
-            for in_f in in_files:
-                if in_f.split('/')[-1].startswith(track):
-                    track_in_file = in_f
-                    break
-            assert track_in_file != None
-            col_npz_objects.append(np.load(track_in_file))
-        rows.append(np.hstack(([npz_obj["arr_0"] for npz_obj in col_npz_objects])))
-    X_df = np.vstack(([row for row in rows]))
+if os.path.isfile(x_array):
+    X = np.load(x_array)
+else:
+    ## stacked model
+    if model_type == "stacked":
+        npz_objects = []
+        for in_f in in_files:
+            npz_objects.append(np.load(in_f))
+        X = np.vstack(([npz_obj["arr_0"] for npz_obj in npz_objects]))
+    ## concatenated model
+    if model_type == "concatenated":
+        rows = []
+        for assay in assays:
+            col_npz_objects = []
+            for epigenome in epigenomes:
+                track = "{}_{}".format(epigenome, assay)
+                # find track input file
+                track_in_file = None
+                for in_f in in_files:
+                    if in_f.split('/')[-1].startswith(track):
+                        track_in_file = in_f
+                        break
+                assert track_in_file != None
+                col_npz_objects.append(np.load(track_in_file))
+            rows.append(np.hstack(([npz_obj["arr_0"] for npz_obj in col_npz_objects])))
+        X = np.vstack(([row for row in rows]))
 ##
-print("X_df: {}".format(X_df.shape)) # shape is E x G
-num_tracks = X_df.shape[0]
-num_positions = X_df.shape[1]
+print("X: {}".format(X.shape)) # shape is E x G
+num_tracks = X.shape[0]
+num_positions = X.shape[1]
 
 ### data normalization
-X_df = np.arcsinh(X_df)
+X = np.arcsinh(X)
 
 ### run ssm training
 model = ssm.ssm(E=num_tracks, G=num_positions, K=n_features, \
             lambda_1_l2=lambda_1_l2, lambda_2_l1=lambda_2_l1, lambda_2_l2=lambda_2_l2, lambda_3_l2=lambda_3_l2, \
-            positive_state=True, sumone_state=False, positive_em=True, message_passing=False, \
-            verbose=False)
+            positive_state=True, sumone_state=False, positive_em=True, message_passing=True, \
+            X=X, verbose=False)
 ##
-model.set_x(X_df)
 if os.path.isfile(existing_model):
     # Load model parameters
     with open(existing_model, 'r') as model_f:

@@ -22,6 +22,8 @@ arg_parser.add_argument("-o", "--outdir", required=False,
                         help="Output directory to save the generated files")
 arg_parser.add_argument("--model", required=False, 
                         help="Path to an existing model")
+arg_parser.add_argument("-x", "--x_array", required=False, 
+                        help="Path to an .npy file containing the input array to the model.")
 arg_parser.add_argument("-p", "--cores", type=int, required=False, default=1, 
                         help="Number of CPU cores")
 arg_parser.add_argument("--debug", required=False, action="store_true", 
@@ -43,6 +45,7 @@ def run_pipeline():
     n_features = args.nfeatures
     out_dir = args.outdir
     model = args.model
+    x_array = args.x_array
     n_cores = args.cores
     dry_run = args.dryrun
     debug = args.debug
@@ -53,8 +56,8 @@ def run_pipeline():
             cmd += " --cores"
         else:
             cmd += " --cores {}".format(n_cores)
-        cmd += " --config root_path={} in_dir={} model_type={} n_features={} out_dir={} model={} debug={}".format(
-                            root_path, in_dir, model_type, n_features, out_dir, model, debug)
+        cmd += " --config root_path={} in_dir={} model_type={} n_features={} out_dir={} model={} x_array={} debug={}".format(
+                            root_path, in_dir, model_type, n_features, out_dir, model, x_array, debug)
         if dry_run:
             cmd += " -n"
         print(cmd)
