@@ -1,0 +1,4 @@
+include: "Snakefile_prepare"
+include: "Snakefile_train"
+include: "Snakefile_annotate"
+include: "Snakefile_evaluate"
