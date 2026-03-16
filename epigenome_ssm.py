@@ -18,6 +18,8 @@ arg_parser.add_argument("-m", "--modeltype", required=False, default="stacked", 
                         help="Type of model")
 arg_parser.add_argument("-k", "--nfeatures", type=int, required=False, default=5, 
                         help="Number of chromatin state features")
+arg_parser.add_argument("--max_iter", type=int, required=False, default=50, 
+                        help="Maximum number of iterations for training the model")
 arg_parser.add_argument("--n_chunks", type=int, required=False, default=10, 
                         help="Number of chunks to divide the genome into, for efficiency")
 arg_parser.add_argument("-o", "--outdir", required=False, 
@@ -47,6 +49,7 @@ def run_pipeline():
     custom_element_file = args.custom_element_file
     model_type = args.modeltype
     n_features = args.nfeatures
+    max_iter = args.max_iter
     n_chunks = args.n_chunks
     out_dir = args.outdir
     model = args.model
@@ -62,8 +65,8 @@ def run_pipeline():
             cmd += " --cores"
         else:
             cmd += " --cores {}".format(n_cores)
-        cmd += " --config root_path={} in_dir={} model_type={} n_features={} out_dir={} model={} x_array={} debug={}".format(
-                            root_path, in_dir, model_type, n_features, out_dir, model, x_array, debug)
+        cmd += " --config root_path={} in_dir={} model_type={} n_features={} max_iter={} out_dir={} model={} x_array={} debug={}".format(
+                            root_path, in_dir, model_type, n_features, max_iter, out_dir, model, x_array, debug)
         if dry_run:
             cmd += " -n"
         print(cmd)

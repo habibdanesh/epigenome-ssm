@@ -8,6 +8,7 @@ n_features = config["n_features"]
 out_dir = config["out_dir"]
 existing_model = config["model"]
 x_array = config["x_array"]
+max_iter = config["max_iter"]
 debug = config["debug"]
 
 ### paths
@@ -59,7 +60,7 @@ rule run_training:
         lambda_2_l2 = .1,
         lambda_3_l2 = .1,
         n_rand_init = 10,
-        max_iter = 20,
+        max_iter = max_iter,
         min_improvement = 0.001,
         existing_model = existing_model,
         x_array = x_array
