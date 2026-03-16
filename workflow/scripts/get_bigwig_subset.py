@@ -4,7 +4,6 @@ import numpy as np
 ### snakemake parameters
 in_files = snakemake.input.in_files
 regions_files = snakemake.input.regions_files
-bw_avg_over_bed_src = snakemake.input.bw_avg_over_bed_src
 out_npz_files = snakemake.output.out_npz_files
 
 for in_f, out_npz_f in zip(in_files, out_npz_files):
@@ -15,8 +14,8 @@ for in_f, out_npz_f in zip(in_files, out_npz_files):
         out_bed_f = "{}.bed.tmp".format(out_bg_f)
         temp_out_f = "{}.{}.tmp".format(out_bg_f, i)
         temp_out_files.append(temp_out_f)
-        cmd = "{} {} {} {} -bedOut={}".format(
-                bw_avg_over_bed_src, in_f, regions_file, out_tab_f, out_bed_f)
+        cmd = "bigWigAverageOverBed {} {} {} -bedOut={}".format(
+                in_f, regions_file, out_tab_f, out_bed_f)
         os.system(cmd)
         ### sort
         cmd = "sort -k1V -k2n -k3n {} > {}".format(out_bed_f, temp_out_f)

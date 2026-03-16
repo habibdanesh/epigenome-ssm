@@ -7,3 +7,6 @@ dependencies:
   - numpy
   - matplotlib
   - seaborn
+  - ucsc-bigwigaverageoverbed
+  - ucsc-bedgraphpack
+  - ucsc-bedgraphtobigwig

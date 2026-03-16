@@ -1,5 +1,4 @@
 import os
-from sys import platform
 
 ### config parameters
 root_path = config["root_path"]
@@ -15,11 +14,6 @@ chromosomes = chromosomes.split() if chromosomes is not None else None
 if not os.path.isdir(out_dir):
     os.system("mkdir -p {}".format(out_dir))
 scripts_dir = root_path + "/workflow/scripts"
-if platform.startswith("linux"):
-    bw_avg_over_bed_src = root_path + "/util/ucsc/linux/bigWigAverageOverBed"
-if platform.startswith("darwin"):
-    bw_avg_over_bed_src = root_path + "/util/ucsc/mac-x86/bigWigAverageOverBed"
-os.system("chmod +x {}".format(bw_avg_over_bed_src)) # make it executable
 
 ### output directories
 tracks_dir = out_dir + "/tracks"
@@ -88,8 +82,7 @@ rule generate_bin_regions:
 rule get_bigwig_subset:
     input:
         in_files = track_in_files,
-        regions_files = chrom_regions_files,
-        bw_avg_over_bed_src = bw_avg_over_bed_src
+        regions_files = chrom_regions_files
     output:
         out_npz_files = track_npz_files
     threads:
