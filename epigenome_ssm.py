@@ -24,6 +24,8 @@ arg_parser.add_argument("-o", "--outdir", required=False,
                         help="Output directory to save the generated files")
 arg_parser.add_argument("--model", required=False, 
                         help="Path to an existing model")
+arg_parser.add_argument("--ref_genome", required=False, default='hg38', choices=['hg19', 'hg38', 'mm10'],
+                        help="Reference genome assembly for generating the final feature bigWig files")
 arg_parser.add_argument("-x", "--x_array", required=False, 
                         help="Path to an .npy file containing the input array to the model.")
 arg_parser.add_argument("-p", "--cores", type=int, required=False, default=4, 
@@ -48,6 +50,7 @@ def run_pipeline():
     n_chunks = args.n_chunks
     out_dir = args.outdir
     model = args.model
+    ref_genome = args.ref_genome
     x_array = args.x_array
     n_cores = args.cores
     dry_run = args.dryrun
@@ -73,8 +76,8 @@ def run_pipeline():
             cmd += " --cores"
         else:
             cmd += " --cores {}".format(n_cores)
-        cmd += " --config root_path={} in_dir={} out_dir={} model={} n_chunks={} debug={}".format(
-                            root_path, in_dir, out_dir, model, n_chunks, debug)
+        cmd += " --config root_path={} in_dir={} out_dir={} model={} n_chunks={} ref_genome={} debug={}".format(
+                            root_path, in_dir, out_dir, model, n_chunks, ref_genome, debug)
         if dry_run:
             cmd += " -n"
         print(cmd)

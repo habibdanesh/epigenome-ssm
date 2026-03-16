@@ -11,6 +11,7 @@ out_dir = config["out_dir"]
 debug = config["debug"]
 existing_model = config["model"]
 n_chunks = config["n_chunks"] # Number of chunks to divide the genome into
+ref_genome = config["ref_genome"]
 
 ### paths
 scripts_dir = root_path + "/workflow/scripts"
@@ -24,7 +25,7 @@ if existing_model is None or existing_model == 'None':
 else:
     model_json = existing_model
 
-chrom_sizes_f = root_path + "/data/misc/hg38.chrom.sizes"
+chrom_sizes_f = root_path + f"/data/misc/{ref_genome}.chrom.sizes"
 
 ### model parameters
 with open(model_json, 'r') as model_f:
