@@ -13,7 +13,7 @@ arg_parser.add_argument("-b", "--binsize", type=int, required=False, default=200
                         help="Bin size (resolution) to average the signals")
 arg_parser.add_argument("-o", "--outdir", required=False, 
                         help="Output directory to save the generated files")
-arg_parser.add_argument("-p", "--cores", type=int, required=False, default=1, 
+arg_parser.add_argument("-p", "--cores", type=int, required=False, default=8, 
                         help="Number of CPU cores")
 arg_parser.add_argument("-n", "--dryrun", required=False, action="store_true", 
                         help="Dry run")

@@ -54,7 +54,7 @@ X = np.empty((E, chunk_nbins), dtype=np.single)
 ## stacked model
 if model_type == "stacked":
     for idx, in_f in enumerate(in_files):
-        X[idx, :] = np.load(in_f, mmap_mode='r')[bin_start:bin_end]
+        X[idx, :] = np.load(in_f, mmap_mode='r')['arr_0'][bin_start:bin_end]
 
 ## concatenated model
 if model_type == "concatenated":

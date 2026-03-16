@@ -38,9 +38,9 @@ def save_model(itr):
         "lambda_3_l2": lambda_3_l2,
         "theta_m": model.theta_m.tolist(),
         "lambda_m": model.lambda_m.tolist(),
-        "error_m": model.error_m,
-        "improve_m": model.improve_m,
-        "opt_time_m": model.opt_time_m,
+        "error_m": [float(e) for e in model.error_m],
+        "improve_m": [float(i) for i in model.improve_m],
+        "opt_time_m": [float(t) for t in model.opt_time_m],
         "assays": assays,
         "epigenomes": epigenomes
     }

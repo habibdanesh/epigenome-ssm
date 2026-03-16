@@ -18,13 +18,15 @@ arg_parser.add_argument("-m", "--modeltype", required=False, default="stacked", 
                         help="Type of model")
 arg_parser.add_argument("-k", "--nfeatures", type=int, required=False, default=5, 
                         help="Number of chromatin state features")
+arg_parser.add_argument("--n_chunks", type=int, required=False, default=10, 
+                        help="Number of chunks to divide the genome into, for efficiency")
 arg_parser.add_argument("-o", "--outdir", required=False, 
                         help="Output directory to save the generated files")
 arg_parser.add_argument("--model", required=False, 
                         help="Path to an existing model")
 arg_parser.add_argument("-x", "--x_array", required=False, 
                         help="Path to an .npy file containing the input array to the model.")
-arg_parser.add_argument("-p", "--cores", type=int, required=False, default=1, 
+arg_parser.add_argument("-p", "--cores", type=int, required=False, default=8, 
                         help="Number of CPU cores")
 arg_parser.add_argument("--debug", required=False, action="store_true", 
                         help="Debug mode")
@@ -43,6 +45,7 @@ def run_pipeline():
     custom_element_file = args.custom_element_file
     model_type = args.modeltype
     n_features = args.nfeatures
+    n_chunks = args.n_chunks
     out_dir = args.outdir
     model = args.model
     x_array = args.x_array
@@ -70,8 +73,8 @@ def run_pipeline():
             cmd += " --cores"
         else:
             cmd += " --cores {}".format(n_cores)
-        cmd += " --config root_path={} in_dir={} out_dir={} debug={}".format(
-                            root_path, in_dir, out_dir, debug)
+        cmd += " --config root_path={} in_dir={} out_dir={} model={} n_chunks={} debug={}".format(
+                            root_path, in_dir, out_dir, model, n_chunks, debug)
         if dry_run:
             cmd += " -n"
         print(cmd)

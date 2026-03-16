@@ -17,10 +17,11 @@ training_dir = out_dir + "/training"
 annotation_dir = out_dir + "/annotation"
 features_dir = annotation_dir + "/features"
 plots_dir = out_dir + "/plots"
-if existing_model is not None:
-    model_json = existing_model
-else:
+
+if existing_model is None or existing_model == 'None':
     model_json = training_dir + "/model.json"
+else:
+    model_json = existing_model
 
 ### model parameters
 with open(model_json, 'r') as model_f:
