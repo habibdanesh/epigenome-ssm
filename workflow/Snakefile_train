@@ -59,7 +59,7 @@ rule run_training:
         lambda_2_l2 = .1,
         lambda_3_l2 = .1,
         n_rand_init = 10,
-        max_iter = 50,
+        max_iter = 20,
         min_improvement = 0.001,
         existing_model = existing_model,
         x_array = x_array

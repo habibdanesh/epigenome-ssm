@@ -11,9 +11,10 @@ arg_parser.add_argument("-r", "--regions", required=True,
                         help="Path to a BED file containing genomic regions to be included in the analysis")
 arg_parser.add_argument("-b", "--binsize", type=int, required=False, default=200, 
                         help="Bin size (resolution) to average the signals")
+arg_parser.add_argument("--chromosomes", nargs='*', default=None, help="List of chromosomes to include")
 arg_parser.add_argument("-o", "--outdir", required=False, 
                         help="Output directory to save the generated files")
-arg_parser.add_argument("-p", "--cores", type=int, required=False, default=8, 
+arg_parser.add_argument("-p", "--cores", type=int, required=False, default=4, 
                         help="Number of CPU cores")
 arg_parser.add_argument("-n", "--dryrun", required=False, action="store_true", 
                         help="Dry run")
@@ -26,9 +27,11 @@ def run_pipeline():
     in_files = args.infiles
     regions_file = args.regions
     bin_size = args.binsize
+    chromosomes = args.chromosomes
     out_dir = args.outdir
     n_cores = args.cores
     dry_run = args.dryrun
+
     ### run
     cmd = "snakemake --snakefile {}/workflow/Snakefile_prepare".format(root_path)
     if n_cores == -1: # use all available cores
@@ -37,6 +40,10 @@ def run_pipeline():
         cmd += " --cores {}".format(n_cores)
     cmd += " --config root_path={} in_files={} regions_file={} bin_size={} out_dir={}".format(
                         root_path, in_files, regions_file, bin_size, out_dir)
+    if chromosomes is not None:
+        chroms_str = " ".join(chromosomes)
+        cmd += " chromosomes='{}'".format(chroms_str)
+        
     if dry_run:
         cmd += " -n"
     print(cmd)

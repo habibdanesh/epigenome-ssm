@@ -6,7 +6,10 @@ root_path = config["root_path"]
 in_files_locator = config["in_files"]
 regions_file = config["regions_file"]
 bin_size = config["bin_size"]
+chromosomes = config["chromosomes"]
 out_dir = config["out_dir"]
+
+chromosomes = chromosomes.split() if chromosomes is not None else None
 
 ### paths
 if not os.path.isdir(out_dir):
@@ -49,7 +52,9 @@ with open(regions_file, 'r') as regions_f:
     for line in regions:
         columns = line.split()
         chrom = columns[0]
-        if chrom not in chroms:
+        if chrom not in chromosomes: # Exclude
+            continue
+        if chrom not in chroms: # Include
             chroms.append(chrom)
 chrom_regions_files = ["{}/regions.{}.tmp".format(out_dir, i) for i in range(len(chroms))]
 
@@ -68,7 +73,8 @@ rule generate_bin_regions:
     input:
         regions_file = regions_file
     params:
-        bin_size = bin_size
+        bin_size = bin_size,
+        chromosomes = chromosomes
     output:
         bin_regions_file = bin_regions_file,
         n_bins_file = n_bins_file,

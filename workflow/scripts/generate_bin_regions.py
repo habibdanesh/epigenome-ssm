@@ -2,6 +2,7 @@ import os
 
 ### snakemake parameters
 regions_file = snakemake.input.regions_file
+chromosomes = snakemake.params.chromosomes
 bin_size = snakemake.params.bin_size
 bin_regions_file = snakemake.output.bin_regions_file
 n_bins_file = snakemake.output.n_bins_file
@@ -10,6 +11,18 @@ chrom_regions_files = snakemake.output.chrom_regions_files
 ### sort the input regions file to make sure chrom bin counter is accurate
 regions_file_sorted = '/'.join(bin_regions_file.split('/')[:-1]) + "/regions.sorted.bed.tmp"
 os.system("sort -k1V -k2n -k3n {} > {}".format(regions_file, regions_file_sorted))
+
+### Filter regions to include only the specified chromosomes
+if chromosomes is not None:
+    _regions_file_sorted = '/'.join(bin_regions_file.split('/')[:-1]) + "/regions.sorted.filtered.bed.tmp"
+    with open(regions_file_sorted, 'r') as in_f, open(_regions_file_sorted, 'w') as out_f:
+        for line in in_f:
+            chrom = line.split()[0]
+            if chrom in chromosomes:
+                out_f.write(line)
+    os.remove(regions_file_sorted)
+    regions_file_sorted = _regions_file_sorted
+
 ###
 current_chrom = ''
 region_counter = 0

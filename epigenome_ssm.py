@@ -26,7 +26,7 @@ arg_parser.add_argument("--model", required=False,
                         help="Path to an existing model")
 arg_parser.add_argument("-x", "--x_array", required=False, 
                         help="Path to an .npy file containing the input array to the model.")
-arg_parser.add_argument("-p", "--cores", type=int, required=False, default=8, 
+arg_parser.add_argument("-p", "--cores", type=int, required=False, default=4, 
                         help="Number of CPU cores")
 arg_parser.add_argument("--debug", required=False, action="store_true", 
                         help="Debug mode")
