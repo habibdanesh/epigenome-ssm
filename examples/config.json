@@ -1,0 +1,27 @@
+{
+    "src_dir": "epigenome-ssm",
+    "in_files_locator": "in_files_locator.tsv",
+    
+    "bin_size": 25,
+    "n_features": 3,
+    "max_iter": 10,
+    "model_type": "stacked",
+    "n_chunks": 10,
+    "ref_genome": "hg38",
+    
+    "n_cores": 12,
+    "debug": "False",
+    "results_dir": "results/stacked-k3",
+
+    "training": {
+        "regions_file": "epigenome-ssm/data/misc/encodePilotRegions.hg38.liftover.bed",
+        "chromosomes": "chr1 chr10 chr21",
+        "out_dir": "results/processed-data/training"
+    },
+    
+    "annotation": {
+        "regions_file": "epigenome-ssm/data/misc/ENCFF356LFX_complement.bed",
+        "chromosomes": "chr21",
+        "out_dir": "results/processed-data/annotation"
+    }
+}
