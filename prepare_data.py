@@ -24,7 +24,7 @@ args = arg_parser.parse_args()
 def run_pipeline():
     ### parameters
     root_path = '/'.join(os.path.abspath(sys.argv[0]).split('/')[:-1])
-    in_files = args.infiles
+    in_files_locator = args.infiles
     regions_file = args.regions
     bin_size = args.binsize
     chromosomes = args.chromosomes
@@ -38,8 +38,8 @@ def run_pipeline():
         cmd += " --cores"
     else:
         cmd += " --cores {}".format(n_cores)
-    cmd += " --config root_path={} in_files={} regions_file={} bin_size={} out_dir={}".format(
-                        root_path, in_files, regions_file, bin_size, out_dir)
+    cmd += " --config root_path={} in_files_locator={} regions_file={} bin_size={} out_dir={}".format(
+                        root_path, in_files_locator, regions_file, bin_size, out_dir)
     if chromosomes is not None:
         chroms_str = " ".join(chromosomes)
         cmd += " chromosomes='{}'".format(chroms_str)

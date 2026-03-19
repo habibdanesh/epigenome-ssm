@@ -2,7 +2,7 @@ import os
 
 ### config parameters
 root_path = config["root_path"]
-in_files_locator = config["in_files"]
+in_files_locator = config["in_files_locator"]
 regions_file = config["regions_file"]
 bin_size = config["bin_size"]
 chromosomes = config["chromosomes"]
