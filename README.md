@@ -35,7 +35,6 @@ Create a tab-separated file detailing the input bigWig files. An example can be 
 Define the pipeline arguments in a single `config.json` file. An example is provided at `examples/config.json`.
 
 **Key Parameters:**
-- `src_dir`: Path to epigenome-ssm repository
 - `bin_size`: Resolution (in base pairs) to average the signals.
 - `n_features`: Number of continuous chromatin state features to learn.
 - `max_iter`: Maximum number of iterations for training the model.

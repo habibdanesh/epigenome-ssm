@@ -1,6 +1,6 @@
 configfile: "config.json"
 
-SRC = config["src_dir"]
+SRC = workflow.basedir
 
 
 rule all:

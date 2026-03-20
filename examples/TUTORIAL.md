@@ -72,7 +72,6 @@ You can prepare your `config.json` file using the template below. Make sure the 
 
 ```json
 {
-    "src_dir": "epigenome-ssm",
     "in_files_locator": "in_files_locator.tsv",
     
     "bin_size": 25,
