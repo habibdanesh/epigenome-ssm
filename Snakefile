@@ -23,7 +23,7 @@ rule prepare_training_data:
             --config \
                 root_path={SRC} \
                 in_files_locator={config[in_files_locator]} \
-                regions_file={SRC}/{config[training][regions_file]} \
+                regions_file={config[training][regions_file]} \
                 chromosomes="{config[training][chromosomes]}" \
                 bin_size={config[bin_size]} \
                 out_dir={config[training][out_dir]}
@@ -48,7 +48,7 @@ rule prepare_annotation_data:
             --config \
                 root_path={SRC} \
                 in_files_locator={config[in_files_locator]} \
-                regions_file={SRC}/{config[annotation][regions_file]} \
+                regions_file={config[annotation][regions_file]} \
                 chromosomes="{config[annotation][chromosomes]}" \
                 bin_size={config[bin_size]} \
                 out_dir={config[annotation][out_dir]}

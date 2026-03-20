@@ -32,7 +32,7 @@ cd epigenome-ssm
 mamba env create -f environment.yaml
 
 # Activate the environment
-conda activate epigenome-ssm
+mamba activate epigenome-ssm
 
 # Move back to the main tutorial directory to run the pipeline
 cd ..
@@ -47,16 +47,23 @@ cp epigenome-ssm/examples/in_files_locator.tsv .
 cp epigenome-ssm/examples/config.json .
 ```
 
-2. **Download the BigWig files:** Open the `in_files_locator.tsv` file and open the links in the 4th column using your web browser. Download all 6 `.bw` files and place them directly in your `~/Desktop/ssm-annotation` folder. 
-   
-Your `in_files_locator.tsv` file should look like this:
+2. **Download the BigWig files:** Download the sample bigWig tracks from [here](https://www.icloud.com/iclouddrive/015MUy7zmmVqCoGA4IEpmA98A#input). 
+
+3. **Extract the datasets:** Once downloaded, move `input.zip` to your `~/Desktop/ssm-annotation` folder and unzip it. Ensure the `.bw` files are extracted directly into your working directory (or update the paths in your locator file accordingly).
+
+```bash
+mv ~/Downloads/input.zip .
+unzip input.zip
+```
+
+Your `in_files_locator.tsv` file should look like this (the first 3 columns are required):
 ```tsv
-Epithelial	H3K27ac	Epithelial_H3K27ac.pval.bw	https://www.icloud.com/iclouddrive/058x9wp6wm_H7ClRsvNemC64A#Epithelial_H3K27ac
-Epithelial	H3K36me3	Epithelial_H3K36me3.pval.bw	https://www.icloud.com/iclouddrive/028pkgp4TfND5DfLFIWdm5Veg#Epithelial_H3K36me3
-Epithelial	H3K9me3	Epithelial_H3K9me3.pval.bw	https://www.icloud.com/iclouddrive/03fR9d2A5AwFl2uFRUjznihGg#Epithelial_H3K9me3
-Myeloid	H3K27ac	Myeloid_H3K27ac.pval.bw	https://www.icloud.com/iclouddrive/0f2VObl2yMOVM_tneMOzn8o_Q#Myeloid_H3K27ac
-Myeloid	H3K36me3	Myeloid_H3K36me3.pval.bw	https://www.icloud.com/iclouddrive/090GF5VpuI1QtqZaF7y4HGq2w#Myeloid_H3K36me3
-Myeloid	H3K9me3	Myeloid_H3K9me3.pval.bw	https://www.icloud.com/iclouddrive/091DorxN9npaixpvX8R_RbbBA#Myeloid_H3K9me3
+Epithelial	H3K27ac	input/Epithelial_H3K27ac.pval.bw
+Epithelial	H3K36me3	input/Epithelial_H3K36me3.pval.bw
+Epithelial	H3K9me3	input/Epithelial_H3K9me3.pval.bw
+Myeloid	H3K27ac	input/Myeloid_H3K27ac.pval.bw
+Myeloid	H3K36me3	input/Myeloid_H3K36me3.pval.bw
+Myeloid	H3K9me3	input/Myeloid_H3K9me3.pval.bw
 ```
 If you decide to place input bigWig files in a different directory, make sure you update the paths in the third column in `in_files_locator.tsv`. 
 
