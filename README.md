@@ -2,6 +2,8 @@
 
 epigenome-ssm is a chromatin state annotation method that uses a non-negative state space model (SSM) and summarizes each genomic position as a vector of continuous chromatin state features, in contrast to the previous approach of assigning a discrete chromatin state label. This continuous approach can summarize complex high-dimensional datasets into a small number of interpretable chromatin state features. Unlike discrete labels, these continuous features preserve the underlying continuous nature of the epigenomic signal tracks, can easily represent varying strengths of a given genomic element, can represent combinatorial elements with multiple types of activities, and are shown to be useful for expressive visualizations because they map complex high-dimensional datasets onto a much smaller number of dimensions.
 
+NOTE: See `examples/TUTORIAL.md` for step-by-step instructions on how to run the pipeline on a small set of ChIP-seq tracks.
+
 ## Installation
 
 1. **Clone the repository:**
@@ -23,7 +25,7 @@ epigenome-ssm is a chromatin state annotation method that uses a non-negative st
 
 ## Running the Workflow
 
-The epigenome-ssm pipeline handles data preparation, model training, and annotation automatically through a single Snakemake workflow. It takes multiple epigenomic signal tracks in bigWig files as input, learns chromatin state features, and generates the final chromatin state feature tracks in both `numpy .npy` and `bigWig` files. See `examples` for step-by-step instructions on how to run the pipeline on a small set of ChIP-seq tracks.
+The epigenome-ssm pipeline handles data preparation, model training, and annotation automatically through a single Snakemake workflow. It takes multiple epigenomic signal tracks in bigWig files as input, learns chromatin state features, and generates the final chromatin state feature tracks in both `numpy .npy` and `bigWig` files.
 
 ### 1. Prepare your input file locator
 Create a tab-separated file detailing the input bigWig files. An example can be found at `examples/in_files_locator.tsv`. The first three columns in this file must be:
