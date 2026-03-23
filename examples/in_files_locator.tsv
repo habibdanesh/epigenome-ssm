@@ -1,6 +1,6 @@
-Epithelial	H3K27ac	Epithelial_H3K27ac.pval.bw
-Epithelial	H3K36me3	Epithelial_H3K36me3.pval.bw
-Epithelial	H3K9me3	Epithelial_H3K9me3.pval.bw
-Myeloid	H3K27ac	Myeloid_H3K27ac.pval.bw
-Myeloid	H3K36me3	Myeloid_H3K36me3.pval.bw
-Myeloid	H3K9me3	Myeloid_H3K9me3.pval.bw
+Epithelial	H3K27ac	input/Epithelial_H3K27ac.pval.bw
+Epithelial	H3K36me3	input/Epithelial_H3K36me3.pval.bw
+Epithelial	H3K9me3	input/Epithelial_H3K9me3.pval.bw
+Myeloid	H3K27ac	input/Myeloid_H3K27ac.pval.bw
+Myeloid	H3K36me3	input/Myeloid_H3K36me3.pval.bw
+Myeloid	H3K9me3	input/Myeloid_H3K9me3.pval.bw
