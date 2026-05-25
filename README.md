@@ -9,7 +9,7 @@ NOTE: See `examples/TUTORIAL.md` for step-by-step instructions on how to run the
 1. **Clone the repository:**
    You need to clone the `epigenome-ssm` repository to your local machine to access the pipeline scripts:
    ```bash
-   git clone https://github.com/your-username/epigenome-ssm.git
+   git clone https://github.com/habibdanesh/epigenome-ssm.git
    cd epigenome-ssm
    ```
 
